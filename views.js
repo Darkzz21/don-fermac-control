@@ -261,7 +261,7 @@ VIEWS.ajustes=function(){ const c=S.config; const ur=c.ultimoRespaldo;
    <label class="field">Rubro (ajusta módulos)<select name="rubro" data-chg="rubro">${opts(Object.keys(RUBROS),c.rubro)}</select></label><label class="field">Moneda<input name="moneda" value="${esc(c.moneda)}"></label>
    <label class="field inline"><input type="checkbox" name="venc" ${c.venc?'checked':''}> Controlar vencimientos y lotes</label><label class="field inline"><input type="checkbox" name="peso" ${c.peso?'checked':''}> Vendo productos al peso (kg)</label>
    <label class="field">IVA habitual en compras (%)<input name="iva" value="${fnum(c.iva)}" inputmode="decimal"></label><label class="field">Avisar vencimientos con (días)<input name="diasVence" value="${c.diasVence}" inputmode="numeric"></label><label class="field">Precio desactualizado después de (días)<input name="diasPrecio" value="${c.diasPrecio}" inputmode="numeric"></label>
-   <label class="field">Logo<input type="file" id="logof" accept="image/*"></label></form><div class="bar" style="margin-top:12px"><button class="btn pri" data-act="cfg-guardar">Guardar ajustes</button><button class="btn" data-act="logo-reset">Usar logo de Don Fermac</button></div></div>
+   <label class="field">Logo de tu negocio (opcional)<input type="file" id="logof" accept="image/*"></label></form><div class="bar" style="margin-top:12px"><button class="btn pri" data-act="cfg-guardar">Guardar ajustes</button><button class="btn" data-act="logo-reset">Quitar logo</button></div></div>
   <div class="grid g2"><div class="card"><h2>Respaldo</h2><p class="sm muted" style="margin-top:0">Tus datos se guardan en este navegador. Si borrás los datos del navegador o cambiás de computadora se pierden, por eso hay que respaldarlos seguido. ${ur?'Último respaldo: <b>'+fechaTxt(ur)+'</b>.':'<b>Todavía no hiciste ninguno.</b>'}</p>
    <div class="bar"><button class="btn pri" data-act="resp-exp">Descargar respaldo</button><label class="btn">Restaurar respaldo<input type="file" id="respf" accept=".json" hidden></label></div></div>
    <div class="card"><h2>Pasar los datos del programa anterior</h2><p class="sm muted" style="margin-top:0">Elegí el archivo <b>gestion.json</b> de la carpeta «Datos» del programa de escritorio. Se importan productos, proveedores, precios, compras, gastos y movimientos de stock. <b>Reemplaza los datos actuales.</b></p>
@@ -271,7 +271,7 @@ CHG.rubro=el=>{ aplicarRubro(el.value); const f=$('#cfg'); f.elements.venc.check
 ACT['cfg-guardar']=()=>{ const f=$('#cfg').elements; const c=S.config; const iva=num(f.iva.value),dv=num(f.diasVence.value),dp=num(f.diasPrecio.value);
   if(iva==null||dv==null||dp==null||!f.nombre.value.trim()){ toast('Revisá el nombre y los números.',true); return; }
   Object.assign(c,{nombre:f.nombre.value.trim(),sub:f.sub.value.trim(),rubro:f.rubro.value,moneda:f.moneda.value.trim()||'$',venc:f.venc.checked,peso:f.peso.checked,iva,diasVence:Math.round(dv),diasPrecio:Math.round(dp)}); guardar(); pintarMarco(); render(); toast('Ajustes guardados'); };
-ACT['logo-reset']=()=>{ S.config.logo='logo.png'; guardar(); pintarMarco(); toast('Logo restaurado'); };
+ACT['logo-reset']=()=>{ S.config.logo=''; guardar(); pintarMarco(); toast('Logo quitado'); };
 ACT['resp-exp']=()=>{ const t=exportarJSON(); descargar('respaldo_'+S.config.nombre.toLowerCase().replace(/[^a-z0-9]+/g,'_')+'_'+hoy()+'.json',t); setTimeout(()=>{ if(UI.vista==='ajustes') render(); },300); };
 ACT['demo-cargar']=()=>confirmar('Se reemplazan los datos actuales por los de ejemplo. ¿Seguir?',()=>{ cargarDemo(); pintarMarco(); render(); toast('Datos de ejemplo cargados'); },'Cargar ejemplo',false);
 ACT.vaciar=()=>confirmar('Se borran <b>todos</b> los productos, ventas, compras y clientes. Esto no se puede deshacer. Si no hiciste un respaldo, hacelo antes.',()=>{ const c=S.config; S=vacio(); S.config=Object.assign(S.config,c,{demo:false}); indexar(); guardar(); pintarMarco(); ir('panel'); render(); toast('Listo, empezás de cero'); },'Borrar todo');
@@ -285,6 +285,6 @@ document.addEventListener('change',e=>{ const el=e.target;
 /* ================= ARRANQUE ================= */
 window.addEventListener('hashchange',()=>{ const v=location.hash.slice(1); if(VIEWS[v]){ UI.vista=v; render(); } });
 (function arrancar(){
-  S=cargar(); if(S){ S=Object.assign(vacio(),S); S.config=Object.assign(vacio().config,S.config); indexar(); } else cargarDemo();
+  S=cargar(); if(S){ S=Object.assign(vacio(),S); S.config=Object.assign(vacio().config,S.config); if(S.config.logo==='logo.png') S.config.logo=''; indexar(); } else cargarDemo();
   const v=location.hash.slice(1); if(VIEWS[v]) UI.vista=v;
   pintarMarco(); render(); })();

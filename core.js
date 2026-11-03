@@ -36,7 +36,7 @@ function sig(k){ S.seq[k]=(S.seq[k]||0)+1; return S.seq[k]; }
 
 /* ---------- estado y persistencia ---------- */
 function vacio(){
-  return {v:1,config:{nombre:'Don Fermac',sub:'Delicatessen',logo:'logo.png',moneda:'$',rubro:'Fiambrería / Delicatessen',venc:true,peso:true,iva:21,diasVence:15,diasPrecio:90,ultimoRespaldo:null,demo:false},
+  return {v:1,config:{nombre:'Mi negocio',sub:'',logo:'',moneda:'$',rubro:'Fiambrería / Delicatessen',venc:true,peso:true,iva:21,diasVence:15,diasPrecio:90,ultimoRespaldo:null,demo:false},
     seq:{},productos:[],proveedores:[],catalogo:[],historial:[],lotes:[],movimientos:[],compras:[],ventas:[],clientes:[],cobros:[],gastos:[],cajas:[],cajaMov:[]};
 }
 let _t=null;

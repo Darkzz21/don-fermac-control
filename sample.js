@@ -3,7 +3,7 @@
 function prng(seed){ let a=seed>>>0; return function(){ a|=0;a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return((t^t>>>14)>>>0)/4294967296; }; }
 
 function cargarDemo(){
-  S=vacio(); S.config.demo=true; indexar();
+  S=vacio(); S.config.demo=true; S.config.nombre='Fiambrería de ejemplo'; S.config.sub='Fiambrería / Delicatessen'; indexar();
   const prov=(nombre,contacto,tel,color)=>{ const p={id:sig('V'),nombre,contacto,telefono:tel,email:'',direccion:'',color,notas:''}; S.proveedores.push(p); return p.id; };
   const vSur=prov('Lácteos del Sur','Julián Rossi','5491155550101','#1d7a4e');
   const vPepe=prov('Frigorífico Don Pepe','Marcela Díaz','5491155550102','#b4373d');

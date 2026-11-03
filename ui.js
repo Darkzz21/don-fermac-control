@@ -3,7 +3,7 @@
 const UI={vista:'panel',ventasTab:'vender',invTab:null,compTab:'lista',provTab:'prov',
   f:{prod:{q:'',cat:'',prov:'',ver:'',est:'activos'},hist:{q:'',desde:'',hasta:''},mov:{q:'',tipo:'',desde:''},comp:{q:'',desde:''},cli:{q:''},gas:{q:'',desde:''},pos:{q:'',cat:''},pre:{q:'',ver:''}},
   caja:{fecha:null},rep:{per:'mes',desde:'',hasta:''},cart:{items:[],clienteId:'',medio:'Efectivo',recibido:'',descPct:''}};
-const ACT={},FILL={},LIVE={},CHG={},VIEWS={},AFTER={};
+const ACT={},FILL={},LIVE={},CHG={},VIEWS={},AFTER={}; let _raf=0;
 const gp=p=>p.split('.').reduce((o,k)=>o[k],UI);
 const sp=(p,v)=>{const a=p.split('.'),k=a.pop();a.reduce((o,x)=>o[x],UI)[k]=v;};
 const pill=(k,t)=>`<span class="pill ${k}">${esc(t)}</span>`;
@@ -57,7 +57,7 @@ function formModal(titulo,campos,vals,onSave,o={}){
 document.addEventListener('click',e=>{ const el=e.target.closest('[data-act]'); if(!el) return; const a=ACT[el.dataset.act]; if(!a) return;
   try{ a(el,e); }catch(err){ toast(err.message||'Ocurrió un problema',true); console.error(err); } });
 document.addEventListener('input',e=>{ const el=e.target;
-  if(el.dataset&&el.dataset.bind){ sp(el.dataset.bind,el.type==='checkbox'?el.checked:el.value); if(FILL[UI.vista]) FILL[UI.vista](); }
+  if(el.dataset&&el.dataset.bind){ sp(el.dataset.bind,el.type==='checkbox'?el.checked:el.value); if(FILL[UI.vista]){ cancelAnimationFrame(_raf); _raf=requestAnimationFrame(()=>FILL[UI.vista]()); } }
   if(el.dataset&&el.dataset.live&&LIVE[el.dataset.live]) LIVE[el.dataset.live](el,e); });
 document.addEventListener('change',e=>{ const el=e.target; if(el.dataset&&el.dataset.chg&&CHG[el.dataset.chg]){ try{ CHG[el.dataset.chg](el,e); }catch(err){ toast(err.message,true); } } });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar();
@@ -65,26 +65,29 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') cerrar();
 ACT.go=el=>{ ir(el.dataset.v,el.dataset); };
 
 /* ---------- navegación ---------- */
-const NAV=[['panel','Panel','<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>'],
- ['ventas','Ventas','<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6"/>'],
+const NAV=[['#','Inicio'],['panel','Panel','<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>'],
+ ['#','Vender'],['ventas','Ventas','<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6"/>'],
  ['caja','Caja','<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>'],
- ['productos','Productos','<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
+ ['#','Stock'],['productos','Productos','<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
  ['inventario','Inventario','<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'],
  ['compras','Compras','<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>'],
  ['proveedores','Proveedores','<path d="M4 9l1-5h14l1 5M4 9a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0M5 12v8h14v-8"/>'],
- ['clientes','Clientes','<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.3 3 5.5"/>'],
+ ['#','Gestión'],['clientes','Clientes','<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.3 3 5.5"/>'],
  ['gastos','Gastos','<path d="M12 3v18M17 7.5c-.6-1.5-2.4-2.5-5-2.5-3 0-4.5 1.3-4.5 3s1.5 2.5 4.5 3 4.5 1.3 4.5 3-1.6 3-4.5 3c-2.6 0-4.4-1-5-2.5"/>'],
  ['reportes','Reportes','<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
- ['ajustes','Ajustes','<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>']];
+ ['#','Sistema'],['ajustes','Ajustes','<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>']];
 function conteos(){ const lv=S.config.venc?S.lotes.filter(l=>l.cant>0&&l.vence&&difDias(l.vence,hoy())<=S.config.diasVence).length:0;
   const sb=S.productos.filter(p=>p.activo&&stockDe(p.id)<=p.minimo).length; return {inventario:lv,productos:sb}; }
-function navHtml(){ const c=conteos(); return NAV.map(([k,t,ic])=>`<a href="#${k}" class="${UI.vista===k?'on':''}" ${UI.vista===k?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg>${t}${c[k]?`<span class="cnt">${c[k]}</span>`:''}</a>`).join(''); }
-function logoSrc(){ return S.config.logo||'logo.png'; }
-function pintarMarco(){ $('#side').innerHTML=`<div class="brand"><img src="${esc(logoSrc())}" alt="Logo de ${esc(S.config.nombre)}"><div><b>${esc(S.config.nombre)}</b><small>${esc(S.config.sub||'')}</small></div></div><nav class="nav" id="nav" aria-label="Secciones">${navHtml()}</nav><div class="sidefoot" id="sf"></div>`; document.title=S.config.nombre+' · Sistema de control'; }
+function navHtml(){ const c=conteos(); return NAV.map(([k,t,ic])=>k==='#'?`<div class="grp">${t}</div>`:`<a href="#${k}" class="${UI.vista===k?'on':''}" ${UI.vista===k?'aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ic}</svg>${t}${c[k]?`<span class="cnt">${c[k]}</span>`:''}</a>`).join(''); }
+const GESTIA_MARK='<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#000"/><g stroke="#3A7C80" stroke-width="2.6" stroke-linecap="round"><line x1="35.6" y1="35.6" x2="20.6" y2="29.1"/><line x1="20.6" y1="29.1" x2="17.4" y2="16"/><line x1="35.6" y1="35.6" x2="38.9" y2="20.2"/><line x1="35.6" y1="35.6" x2="51.5" y2="31.9"/><line x1="35.6" y1="35.6" x2="23.4" y2="45.9"/><line x1="23.4" y1="45.9" x2="10.8" y2="44.1"/></g><circle cx="35.6" cy="35.6" r="4.5" fill="#7BE0A5"/><circle cx="20.6" cy="29.1" r="3.6" fill="#fff"/><circle cx="17.4" cy="16" r="2.8" fill="#7BE0A5"/><circle cx="38.9" cy="20.2" r="3" fill="#0E8F86"/><circle cx="51.5" cy="31.9" r="4.5" fill="#fff"/><circle cx="23.4" cy="45.9" r="4.9" fill="#0E8F86"/><circle cx="10.8" cy="44.1" r="2.8" fill="#7BE0A5"/></svg>';
+function iniciales(n){ return String(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function pintarMarco(){ const c=S.config;
+  $('#side').innerHTML=`<div class="brand">${GESTIA_MARK}<b>gestia</b></div><div class="biz">${c.logo?`<img src="${esc(c.logo)}" alt="">`:`<span class="ini">${esc(iniciales(c.nombre))}</span>`}<div><b>${esc(c.nombre||'Mi negocio')}</b><small>${esc(c.sub||c.rubro||'')}</small></div></div><nav class="nav" id="nav" aria-label="Secciones">${navHtml()}</nav><div class="sidefoot" id="sf"></div>`;
+  document.title=(c.nombre?c.nombre+' · ':'')+'Gestia'; }
 function ir(v,extra){ UI.vista=v; if(extra&&extra.tab){ if(v==='ventas') UI.ventasTab=extra.tab; if(v==='inventario') UI.invTab=extra.tab; if(v==='compras') UI.compTab=extra.tab; if(v==='proveedores') UI.provTab=extra.tab; }
   if(extra&&extra.ver&&v==='productos') UI.f.prod.ver=extra.ver; if(location.hash!=='#'+v) location.hash=v; else render(); }
 function render(){ if(!S) return; const nav=$('#nav'); if(nav) nav.innerHTML=navHtml();
-  const sf=$('#sf'); if(sf){ const ur=S.config.ultimoRespaldo; sf.innerHTML=S.config.demo?'Datos de ejemplo':(ur?'Último respaldo: '+fechaTxt(ur):'Sin respaldo todavía'); }
+  const sf=$('#sf'); if(sf){ const ur=S.config.ultimoRespaldo; sf.innerHTML=S.config.demo?'<span class="dot w"></span>Datos de ejemplo':(ur&&difDias(hoy(),ur)<=7?'<span class="dot"></span>Respaldo: '+fechaTxt(ur):'<span class="dot w"></span>'+(ur?'Respaldo: '+fechaTxt(ur):'Sin respaldo')); }
   const v=$('#view'); v.innerHTML=(VIEWS[UI.vista]||VIEWS.panel)(); if(AFTER[UI.vista]) AFTER[UI.vista](); window.scrollTo(0,0); }
 function refrescar(){ indexar(); const y=window.scrollY; const nav=$('#nav'); if(nav) nav.innerHTML=navHtml(); if(FILL[UI.vista]&&!['panel','caja','ajustes','reportes'].includes(UI.vista)) FILL[UI.vista](); else { const v=$('#view'); v.innerHTML=VIEWS[UI.vista](); if(AFTER[UI.vista]) AFTER[UI.vista](); } window.scrollTo(0,y); }
 const encab=(t,sub,acc)=>`<div class="head"><div><h1>${esc(t)}</h1>${sub?`<div class="sub">${sub}</div>`:''}</div><div class="bar">${acc||''}</div></div>`;
@@ -111,13 +114,15 @@ VIEWS.panel=function(){
   const dias=[];for(let i=13;i>=0;i--){ const f=addDias(h,-i); dias.push({f,t:ventasValidas(f,f).reduce((a,v)=>a+v.total,0)}); } const mx=Math.max(1,...dias.map(d=>d.t));
   const top=reporte(mes,h).prods.sort((a,b)=>b.ing-a.ing).slice(0,6); const mt=Math.max(1,...top.map(t=>t.ing));
   const rep=S.productos.filter(p=>p.activo&&stockDe(p.id)<=p.minimo).map(p=>({p,s:sugerido(p)})).sort((a,b)=>stockDe(a.p.id)/Math.max(a.p.minimo,1)-stockDe(b.p.id)/Math.max(b.p.minimo,1)).slice(0,6);
-  return `${encab('Panel',S.config.demo?'Datos de ejemplo cargados. Probá todo y después empezá con tus datos desde Ajustes.':'Resumen de '+esc(S.config.nombre),`<button class="btn pri" data-act="go" data-v="ventas">Nueva venta</button>`)}
+  const saludo=(()=>{const hh=new Date().getHours();return hh<12?'Buen día':hh<20?'Buenas tardes':'Buenas noches';})();
+  return `${S.config.demo?`<div class="demo"><span>Estás viendo <b>datos de ejemplo</b>. Probá todo con tranquilidad.</span><button class="btn sm" data-act="go" data-v="ajustes">Empezar con mis datos</button></div>`:''}
+  ${encab(saludo,fechaTxt(h)+' · '+esc(S.config.nombre||'Mi negocio'),`<button class="btn pri" data-act="go" data-v="ventas">Nueva venta</button>`)}
   <div class="kpis">
    <div class="kpi"><div class="k">Ventas de hoy</div><div class="v">${money(rh.ingresos)}</div><div class="d">${rh.vs.length} venta${rh.vs.length===1?'':'s'}</div></div>
    <div class="kpi"><div class="k">Ventas, últimos 30 días</div><div class="v">${money(rm.ingresos)}</div><div class="d">${rm.vs.length} ventas</div></div>
-   <div class="kpi ${rm.neto>=0?'good':'bad'}"><div class="k">Resultado, 30 días</div><div class="v">${money(rm.neto)}</div><div class="d">margen bruto ${money(rm.bruto)} menos gastos y mermas</div></div>
-   <div class="kpi"><div class="k">Stock a costo</div><div class="v">${money(stockCosto)}</div><div class="d">a precio de venta ${money(stockVenta)}</div></div>
-   <div class="kpi ${porCobrar>0?'warn':''}"><div class="k">Por cobrar</div><div class="v">${money(porCobrar)}</div><div class="d">cuenta corriente de clientes</div></div></div>
+   <div class="kpi ${rm.neto>=0?'good':'bad'}"><div class="k">Resultado, 30 días</div><div class="v">${money(rm.neto)}</div><div class="d">después de gastos y mermas</div></div>
+   <div class="kpi"><div class="k">Stock a costo</div><div class="v">${money(stockCosto)}</div><div class="d">vale ${money(stockVenta)} a precio de venta</div></div>
+</div>
   <div class="grid g21"><div class="card"><h2>Ventas de los últimos 14 días</h2><div class="bars" role="img" aria-label="Ventas por día">${dias.map(d=>`<div class="col" title="${fechaTxt(d.f)}: ${money(d.t)}"><div class="bar1" style="height:${Math.max(2,d.t/mx*100)}%"></div><div class="lb">${d.f.slice(8)}</div></div>`).join('')}</div></div>
    <div class="card"><h2>Más vendidos, últimos 30 días</h2>${top.length?top.map(t=>`<div class="hb"><span>${esc(t.nombre)}</span><div class="tr"><div class="fl" style="width:${t.ing/mt*100}%"></div></div><b>${money(t.ing)}</b></div>`).join(''):vacioHtml('Todavía no hay ventas en los últimos 30 días.')}</div></div>
   <div class="grid g2"><div class="card"><h2>Alertas</h2><div class="alerts">${al.length?al.map(a=>`<div class="al ${a[0]}"><div class="grow">${a[1]}</div><button class="btn sm" data-act="go" data-v="${a[2]}" data-tab="${a[3]}" ${a[2]==='productos'&&a[4]==='Revisar'?'data-ver="precio"':''}>${a[4]}</button></div>`).join(''):'<div class="al good"><div class="grow">Todo en orden. No hay alertas.</div></div>'}</div></div>
@@ -191,7 +196,8 @@ function ticketTxt(v){ const w=36; const L=[S.config.nombre.toUpperCase()+(S.con
   L.push('-'.repeat(w)); if(v.desc>0){ L.push('Subtotal: '+money2(v.sub)); L.push('Descuento '+fmt(v.descPct,0)+'%: -'+money2(v.desc)); }
   L.push('TOTAL: '+money2(v.total)); L.push('Pago: '+v.medio+(v.recibido&&v.medio==='Efectivo'?' (recibido '+money2(v.recibido)+(v.recibido>=v.total?', vuelto '+money2(r2(v.recibido-v.total)):'')+')':'')); if(v.estado==='Anulada') L.push('*** VENTA ANULADA ***'); L.push('','¡Gracias por su compra!'); return L.join('\n'); }
 function verTicket(v,nuevo){ const cl=IDX.cli[v.clienteId]; const link=cl?wa(cl.telefono,ticketTxt(v)):'';
-  abrir((nuevo?'Venta registrada · ':'Venta ')+'#'+v.id,`<pre class="ticket">${esc(ticketTxt(v))}</pre>`,{foot:`${!nuevo&&v.estado!=='Anulada'?`<button class="btn bad" data-act="venta-anular" data-id="${v.id}">Anular venta</button>`:''}${link?`<a class="btn" href="${link}" target="_blank" rel="noopener">Enviar por WhatsApp</a>`:''}<button class="btn" id="cpt">Copiar ticket</button><button class="btn pri" data-act="cerrar">${nuevo?'Nueva venta':'Cerrar'}</button>`}); $('#cpt').onclick=()=>copiar(ticketTxt(v),'Ticket copiado'); }
+  abrir((nuevo?'Venta registrada · ':'Venta ')+'#'+v.id,`<pre class="ticket">${esc(ticketTxt(v))}</pre>`,{foot:`${!nuevo&&v.estado!=='Anulada'?`<button class="btn bad" data-act="venta-anular" data-id="${v.id}">Anular venta</button>`:''}${link?`<a class="btn" href="${link}" target="_blank" rel="noopener">Enviar por WhatsApp</a>`:''}<button class="btn" id="prt">Imprimir</button><button class="btn" id="cpt">Copiar ticket</button><button class="btn pri" data-act="cerrar">${nuevo?'Nueva venta':'Cerrar'}</button>`}); $('#cpt').onclick=()=>copiar(ticketTxt(v),'Ticket copiado'); $('#prt').onclick=()=>imprimirTicket(v); }
+function imprimirTicket(v){ try{ const f=document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write('<html><head><style>@page{margin:4mm}body{font:12px/1.35 ui-monospace,Consolas,monospace;width:72mm;margin:0}pre{white-space:pre-wrap;margin:0}</style></head><body><pre>'+esc(ticketTxt(v))+'</pre></body></html>'); d.close(); setTimeout(()=>{ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Este navegador no permite imprimir desde acá. Copiá el ticket.',true); } setTimeout(()=>f.remove(),1500); },150); }catch(e){ toast('No se pudo imprimir. Copiá el ticket.',true); } }
 ACT['venta-ver']=el=>{ const v=S.ventas.find(x=>x.id===+el.dataset.id); if(v) verTicket(v,false); };
 ACT['venta-anular']=el=>{ const id=+el.dataset.id; confirmar('¿Anular la venta #'+id+'? Se devuelve el stock y deja de contar en los totales y en la caja.',()=>{ anularVenta(id); toast('Venta anulada'); refrescar(); },'Anular venta'); };
 
