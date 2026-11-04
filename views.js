@@ -315,7 +315,7 @@ VIEWS.ajustes=function(){ const c=S.config; const ur=c.ultimoRespaldo;
    <label class="field">Decimales del importe<select name="decimales">${opts([{v:0,t:'Sin decimales ($ 1234)'},{v:1,t:'1 decimal ($ 123,4)'},{v:2,t:'2 decimales ($ 12,34)'}],b.decimales)}</select></label>
    <label class="field full">Probar con un código<input id="balt" data-live="bal-test" placeholder="Escaneá o escribí el código de una etiqueta" inputmode="numeric"><span id="balr" class="sm" style="font-weight:400"></span></label></form>
    <div class="bar" style="margin-top:12px"><button class="btn pri" data-act="bal-guardar">Guardar balanza</button></div></div>`; })()}
-  <div class="grid g2"><div class="card"><h2>Respaldo</h2><p class="sm muted" style="margin-top:0">Tus datos se guardan en este navegador. Si borrás los datos del navegador o cambiás de computadora se pierden, por eso hay que respaldarlos seguido. ${ur?'Último respaldo: <b>'+fechaTxt(ur)+'</b>.':'<b>Todavía no hiciste ninguno.</b>'}</p>
+  <div class="grid g2"><div class="card"><h2>Respaldo</h2><p class="sm muted" style="margin-top:0">Tus datos se guardan en este navegador. Si borrás los datos del navegador o cambiás de computadora se pierden, por eso hay que respaldarlos seguido. ${(()=>{ const n=adjUsados().size; return n?'El respaldo incluye los <b>'+n+' archivo'+(n>1?'s':'')+'</b> adjuntos (comprobantes y archivos de clientes). ':''; })()}${ur?'Último respaldo: <b>'+fechaTxt(ur)+'</b>.':'<b>Todavía no hiciste ninguno.</b>'}</p>
    <div class="bar"><button class="btn pri" data-act="resp-exp">Descargar respaldo</button><label class="btn">Restaurar respaldo<input type="file" id="respf" accept=".json" hidden></label></div></div>
    <div class="card"><h2>Pasar los datos del programa anterior</h2><p class="sm muted" style="margin-top:0">Elegí el archivo <b>gestion.json</b> de la carpeta «Datos» del programa de escritorio. Se importan productos, proveedores, precios, compras, gastos y movimientos de stock. <b>Reemplaza los datos actuales.</b></p>
    <label class="btn">Elegir gestion.json<input type="file" id="gestf" accept=".json" hidden></label><div id="gestr" class="sm" style="margin-top:8px"></div></div></div>
@@ -332,11 +332,17 @@ LIVE['bal-test']=()=>{ const t=$('#balt'),r=$('#balr'); if(!t||!r) return; const
   if(!e){ r.innerHTML='<span class="dn">No empieza con ninguno de los prefijos configurados.</span>'; return; }
   r.innerHTML=`${e.ok?'':'<span class="dn">El dígito verificador no coincide. </span>'}PLU <b>${esc(e.plu)}</b> → ${e.p?'<b>'+esc(e.p.nombre)+'</b>':'<span class="dn">ningún producto tiene ese PLU</span>'} · ${e.valor==='peso'?'peso <b>'+qtyTxt({unidad:'kg'},e.kg)+'</b>':'importe <b>'+money2(e.importe)+'</b>'+(e.kg!=null?' = '+qtyTxt({unidad:'kg'},e.kg):'')}`; };
 ACT['logo-reset']=()=>{ S.config.logo=''; guardar(); pintarMarco(); toast('Logo quitado'); };
-ACT['resp-exp']=()=>{ const t=exportarJSON(); descargar('respaldo_'+S.config.nombre.toLowerCase().replace(/[^a-z0-9]+/g,'_')+'_'+hoy()+'.json',t); setTimeout(()=>{ if(UI.vista==='ajustes') render(); },300); };
+ACT['resp-exp']=async el=>{ if(el) el.disabled=true; const hay=adjUsados().size; if(hay) toast('Preparando el respaldo con '+hay+' archivo'+(hay>1?'s':'')+'…');
+  let r; try{ r=await exportarConArchivos(); }catch(e){ r={txt:exportarJSON(),n:0,error:true}; } if(el) el.disabled=false;
+  await descargar('respaldo_'+S.config.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'_')+'_'+hoy()+'.json',r.txt);
+  if(r.error||r.faltan) toast('Ojo: '+(r.error?'no se pudieron leer los archivos':r.faltan+' archivo'+(r.faltan>1?'s no están':' no está')+' en este dispositivo')+'. El resto del respaldo se guardó.',true);
+  setTimeout(()=>{ if(UI.vista==='ajustes') render(); },300); };
 ACT['demo-cargar']=()=>confirmar('Se reemplazan los datos actuales por los de ejemplo. ¿Seguir?',()=>{ cargarDemo(); pintarMarco(); render(); toast('Datos de ejemplo cargados'); },'Cargar ejemplo',false);
 ACT.vaciar=()=>confirmar('Se borran <b>todos</b> los productos, ventas, compras y clientes. Esto no se puede deshacer. Si no hiciste un respaldo, hacelo antes.',()=>{ const c=S.config; S=vacio(); S.config=Object.assign(S.config,c,{demo:false}); indexar(); guardar(); pintarMarco(); ir('panel'); render(); toast('Listo, empezás de cero'); },'Borrar todo');
 document.addEventListener('change',e=>{ const el=e.target;
-  if(el.id==='respf'&&el.files[0]){ const rd=new FileReader(); rd.onload=()=>confirmar('Se reemplazan los datos actuales por los del respaldo. ¿Seguir?',()=>{ try{ importarJSON(String(rd.result)); pintarMarco(); render(); toast('Respaldo restaurado'); }catch(err){ toast(err.message,true); } },'Restaurar',false); rd.readAsText(el.files[0]); el.value=''; }
+  if(el.id==='respf'&&el.files[0]){ const rd=new FileReader(); rd.onload=()=>confirmar('Se reemplazan los datos actuales por los del respaldo. ¿Seguir?',async()=>{ try{ const adj=importarJSON(String(rd.result)); pintarMarco(); render();
+      if(adj&&adj.length){ toast('Restaurando '+adj.length+' archivo'+(adj.length>1?'s':'')+'…'); const n=await restaurarAdjuntos(adj); toast('Respaldo restaurado con '+n+' archivo'+(n!==1?'s':''),n<adj.length); render(); }
+      else toast('Respaldo restaurado'); }catch(err){ toast(err.message,true); } },'Restaurar',false); rd.readAsText(el.files[0]); el.value=''; }
   if(el.id==='gestf'&&el.files[0]){ const rd=new FileReader(); rd.onload=()=>{ let o; try{ o=JSON.parse(String(rd.result).replace(/^﻿/,'')); }catch(err){ $('#gestr').innerHTML='<span class="dn">El archivo no es un JSON válido.</span>'; return; }
       if(!o||(!o.Productos&&!o.Proveedores)){ $('#gestr').innerHTML='<span class="dn">No parece un gestion.json del programa anterior.</span>'; return; }
       confirmar('Se reemplazan los datos actuales por los del programa anterior ('+(o.Productos||[]).length+' productos). ¿Seguir?',()=>{ try{ const r=importarGestion(o); pintarMarco(); ir('productos'); abrir('Importación lista','<p style="margin-top:0">Se importaron <b>'+r.productos+' productos</b>, '+r.proveedores+' proveedores, '+r.compras+' compras y '+r.movimientos+' movimientos de stock.</p><p class="muted">El programa anterior no distinguía unidades: todos los productos quedaron «por unidad». Los que vendés al peso pasalos a kg con el botón <b>Unidad por categoría</b> o desde la ficha de cada uno.</p>',{foot:'<button class="btn pri" data-act="cerrar">Entendido</button>'}); }catch(err){ toast('No se pudo importar: '+err.message,true); } },'Importar',false); }; rd.readAsText(el.files[0]); el.value=''; }
@@ -344,7 +350,8 @@ document.addEventListener('change',e=>{ const el=e.target;
 
 /* ================= ARRANQUE ================= */
 window.addEventListener('hashchange',()=>{ const v=location.hash.slice(1); if(VIEWS[v]){ UI.vista=v; render(); } });
-(function arrancar(){
+// arranca cuando ya se cargaron todos los scripts (comprobantes, etiquetas, archivos)
+document.addEventListener('DOMContentLoaded',function arrancar(){
   S=cargar(); if(S){ S=Object.assign(vacio(),S); S.config=Object.assign(vacio().config,S.config); if(S.config.logo==='logo.png') S.config.logo=''; indexar(); } else cargarDemo();
   const v=location.hash.slice(1); if(VIEWS[v]) UI.vista=v;
-  pintarMarco(); render(); })();
+  pintarMarco(); render(); });

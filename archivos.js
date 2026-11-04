@@ -16,6 +16,18 @@ function archivosHtml(cid){ const L=archivosDe(cid);
     <td class="n" style="white-space:nowrap"><button class="btn sm ghost" data-act="adj-ver" data-id="${esc(a.adjId)}">Ver</button>${a.origen==='archivo'?`<button class="btn sm ghost" data-act="arch-del" data-id="${esc(a.id)}" data-cli="${cid}" title="Borrar archivo" aria-label="Borrar archivo">✕</button>`:''}</td></tr>`).join('')}</tbody></table></div>`
   :vacioHtml('Todavía no hay archivos. Podés subir facturas, remitos, contratos o cualquier PDF o foto.')}`; }
 
+/* ---------- respaldo con archivos: van dentro del mismo .json, en base64 ---------- */
+const adjTodos=()=>adjTx('readonly',st=>st.getAll());
+const aB64=b=>new Promise((ok,ko)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(',')[1]||''); r.onerror=()=>ko(r.error); r.readAsDataURL(b); });
+function adjUsados(){ return new Set((S.archivos||[]).map(a=>a.adjId).concat(S.cobros.filter(c=>c.comprobante).map(c=>c.comprobante.id))); }
+async function exportarConArchivos(){ const txt=exportarJSON(); const usados=adjUsados(); if(!usados.size) return {txt,n:0,bytes:0};
+  let todos=[]; try{ todos=await adjTodos(); }catch(e){ return {txt,n:0,bytes:0,error:true}; }
+  const L=[]; let bytes=0; for(const a of todos){ if(!usados.has(a.id)||!a.blob) continue; bytes+=a.blob.size; L.push({id:a.id,nombre:a.nombre,tipo:a.tipo||a.blob.type||'',fecha:a.fecha,data:await aB64(a.blob)}); }
+  return {txt:L.length?txt.slice(0,-1)+',"_adjuntos":'+JSON.stringify(L)+'}':txt,n:L.length,bytes,faltan:usados.size-L.length}; }
+async function restaurarAdjuntos(L){ await adjTx('readwrite',st=>st.clear()); let n=0;
+  for(const a of L){ try{ const b=await (await fetch('data:'+(a.tipo||'application/octet-stream')+';base64,'+a.data)).blob(); await adjTx('readwrite',st=>st.put({id:a.id,nombre:a.nombre,tipo:a.tipo,blob:b,fecha:a.fecha})); n++; }catch(e){} }
+  return n; }
+
 let ARCH=null;
 ACT['arch-subir']=el=>{ const cid=+el.dataset.id, c=IDX.cli[cid]; if(!c) return; ARCH={cid,files:[]};
   abrir('Subir archivos · '+c.nombre,`<div class="comp" id="archz"><input type="file" id="archf" multiple hidden><button class="btn" type="button" id="archb">${CLIP} Elegir archivos</button>

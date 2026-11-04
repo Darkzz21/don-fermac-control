@@ -225,7 +225,9 @@ function reporte(desde,hasta){
 
 /* ---------- respaldo ---------- */
 function exportarJSON(){ S.config.ultimoRespaldo=hoy(); guardar(); const o=Object.assign({},S); delete o._guardadoOk; return JSON.stringify(o); }
-function importarJSON(txt){ const o=JSON.parse(txt); if(!o||o.v!==1||!Array.isArray(o.productos)) throw new Error('El archivo no es un respaldo válido de esta app.'); S=Object.assign(vacio(),o); indexar(); guardar(); }
+function importarJSON(txt){ const o=JSON.parse(txt); if(!o||o.v!==1||!Array.isArray(o.productos)) throw new Error('El archivo no es un respaldo válido de esta app.');
+  const adj=Array.isArray(o._adjuntos)?o._adjuntos:null; delete o._adjuntos; // los archivos van aparte, a IndexedDB
+  S=Object.assign(vacio(),o); indexar(); guardar(); return adj; }
 function csvEsc(v){ const s=String(v==null?'':v); return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
 function aCSV(cols,rows){ return '﻿'+[cols.join(';')].concat(rows.map(r=>r.map(csvEsc).join(';'))).join('\r\n'); }
 function parseCSV(text){
