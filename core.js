@@ -36,8 +36,9 @@ function sig(k){ S.seq[k]=(S.seq[k]||0)+1; return S.seq[k]; }
 
 /* ---------- estado y persistencia ---------- */
 function vacio(){
-  return {v:1,config:{nombre:'Mi negocio',sub:'',logo:'',moneda:'$',rubro:'Fiambrería / Delicatessen',venc:true,peso:true,iva:21,diasVence:15,diasPrecio:90,ultimoRespaldo:null,demo:false},
-    seq:{},productos:[],proveedores:[],catalogo:[],historial:[],lotes:[],movimientos:[],compras:[],ventas:[],clientes:[],cobros:[],gastos:[],cajas:[],cajaMov:[]};
+  return {v:1,config:{nombre:'Mi negocio',sub:'',logo:'',moneda:'$',rubro:'Fiambrería / Delicatessen',venc:true,peso:true,iva:21,diasVence:15,diasPrecio:90,ultimoRespaldo:null,demo:false,
+      balanza:{on:false,prefijos:'20',largoPlu:5,valor:'peso',decimales:0}},
+    seq:{},productos:[],proveedores:[],catalogo:[],historial:[],lotes:[],movimientos:[],compras:[],ventas:[],clientes:[],cobros:[],ajustesCC:[],gastos:[],cajas:[],cajaMov:[]};
 }
 let _t=null;
 function guardar(){ clearTimeout(_t); _t=setTimeout(()=>{ try{ localStorage.setItem(LS_KEY,JSON.stringify(S)); S._guardadoOk=true; }catch(e){ S._guardadoOk=false; } },250); }
@@ -83,7 +84,7 @@ function nuevoCodigo(){ let n=S.productos.length+1,c; const usados=new Set(S.pro
 function guardarProducto(d,id){
   let p=id?prod(id):null;
   if(!p){ p={id:sig('P'),codigo:d.codigo||nuevoCodigo(),creado:hoy(),activo:true}; S.productos.push(p); }
-  Object.assign(p,{nombre:d.nombre,categoria:d.categoria||'',barras:d.barras||'',unidad:d.unidad||'u',costo:d.costo||0,precio:d.precio||0,minimo:d.minimo||0,notas:d.notas||'',activo:d.activo!==false});
+  Object.assign(p,{nombre:d.nombre,categoria:d.categoria||'',barras:d.barras||'',plu:d.plu!=null?String(d.plu).trim():(p.plu||''),unidad:d.unidad||'u',costo:d.costo||0,precio:d.precio||0,minimo:d.minimo||0,notas:d.notas||'',activo:d.activo!==false});
   indexar(); return p;
 }
 function margen(p){ return p.precio>0?(p.precio-p.costo)/p.precio*100:0; }
@@ -112,10 +113,27 @@ function anularVenta(id){
 }
 function ventasValidas(desde,hasta){ return S.ventas.filter(v=>v.estado!=='Anulada'&&(!desde||v.fecha>=desde)&&(!hasta||v.fecha<=hasta)); }
 function costoVenta(v){ return r2(v.items.reduce((a,i)=>a+i.cant*i.costo,0)); }
+/* ---------- cuenta corriente: planilla con debe / haber / saldo y ciclos de cierre ---------- */
+function movsCC(id){ // todos los movimientos de la cuenta, en orden, con el saldo acumulado
+  const L=[];
+  S.ventas.forEach(v=>{ if(v.estado!=='Anulada'&&v.clienteId===id&&v.medio==='Cuenta corriente') L.push({fecha:v.fecha,ord:v.hora||'',tipo:'venta',ref:v.id,concepto:'Venta #'+v.id+' · '+v.items.length+(v.items.length===1?' producto':' productos'),debe:v.total,haber:0}); });
+  S.cobros.forEach(c=>{ if(c.clienteId===id) L.push({fecha:c.fecha,ord:'~',tipo:'cobro',ref:c.id,concepto:'Pago · '+c.medio+(c.operacion?' · Op. '+c.operacion:'')+(c.nota?' · '+c.nota:''),debe:0,haber:c.monto,comprobante:c.comprobante||null}); });
+  (S.ajustesCC||[]).forEach(a=>{ if(a.clienteId===id) L.push({fecha:a.fecha,ord:'~',tipo:'ajuste',ref:a.id,concepto:a.concepto||(a.tipo==='Cargo'?'Cargo manual':'Descuento / nota de crédito'),debe:a.tipo==='Cargo'?a.monto:0,haber:a.tipo==='Cargo'?0:a.monto}); });
+  L.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:a.ord<b.ord?-1:a.ord>b.ord?1:a.ref-b.ref);
+  let s=0; L.forEach(m=>{ s=r2(s+m.debe-m.haber); m.saldo=s; }); return L;
+}
 function saldoCliente(id){
   const deb=S.ventas.filter(v=>v.estado!=='Anulada'&&v.clienteId===id&&v.medio==='Cuenta corriente').reduce((a,v)=>a+v.total,0);
-  const hab=S.cobros.filter(c=>c.clienteId===id).reduce((a,c)=>a+c.monto,0); return r2(deb-hab);
+  const hab=S.cobros.filter(c=>c.clienteId===id).reduce((a,c)=>a+c.monto,0);
+  const aj=(S.ajustesCC||[]).filter(a=>a.clienteId===id).reduce((a,x)=>a+(x.tipo==='Cargo'?x.monto:-x.monto),0); return r2(deb-hab+aj);
 }
+// Ciclo de cierre: el cliente cierra el día «cierre» de cada mes (0 o vacío = fin de mes). Devuelve {desde,hasta} del ciclo k (0 = el actual, 1 = el anterior…).
+function finCiclo(y,m,dia){ const ult=new Date(y,m+1,0).getDate(); return ymd(new Date(y,m,!dia||dia>=ult?ult:dia)); }
+function cicloCC(cliente,k){ const dia=+(cliente&&cliente.cierre)||0; const h=new Date(hoy()+'T12:00:00'); let y=h.getFullYear(),m=h.getMonth();
+  if(finCiclo(y,m,dia)<hoy()){ m++; } m-=k; const hasta=finCiclo(y,m,dia); const desde=addDias(finCiclo(y,m-1,dia),1); return {desde,hasta}; }
+function resumenCC(id,desde,hasta){ const L=movsCC(id); const antes=L.filter(x=>desde&&x.fecha<desde); const en=L.filter(x=>(!desde||x.fecha>=desde)&&(!hasta||x.fecha<=hasta));
+  const ant=antes.length?antes[antes.length-1].saldo:0; const debe=r2(en.reduce((a,x)=>a+x.debe,0)), haber=r2(en.reduce((a,x)=>a+x.haber,0));
+  return {L:en,anterior:ant,debe,haber,saldo:r2(ant+debe-haber)}; }
 
 /* ---------- compras ---------- */
 function calcCompra(d){ // d:{items:[{cant,costo}],ivaPct,ivaRec,flete,otros}

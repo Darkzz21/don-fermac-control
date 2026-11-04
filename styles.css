@@ -167,6 +167,11 @@ tr.tot td{font-weight:700;background:var(--soft)}
 .md.wide{max-width:920px}
 .md h2{font-size:19px;font-weight:700;margin-bottom:14px;letter-spacing:-.02em}
 .md .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap;align-items:center}
+.cchead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.cchead .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.cchead select{width:auto;max-width:280px}
+.ccres{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:10px}
+.ccres b{color:var(--ink)}.ccres b.dn{color:var(--bad)}.ccres b.up{color:var(--good)}.ccres .btn{margin-left:auto}
+tfoot td{border-top:2px solid var(--line)}
 .comp{border:1.5px dashed var(--line);border-radius:12px;padding:12px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
 .comp.drag{border-color:var(--info);background:var(--info-bg)}
 .comp #compst{flex:1;min-width:200px}

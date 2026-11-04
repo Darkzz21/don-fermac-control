@@ -131,7 +131,9 @@ function guardarCobro(d){ const cid=CB.fijo||+d.cliente; if(!cid) throw new Erro
   if(dup.op) throw new Error('Ese N° de operación ya está cargado (cobro del '+fechaTxt(dup.op.fecha)+'). Si es otro pago, revisá el número.');
   if(dup.hash) throw new Error('Este comprobante ya se cargó en el cobro del '+fechaTxt(dup.hash.fecha)+' a '+cliNom(dup.hash.clienteId)+'.');
   const cobro={fecha:d.fecha||hoy(),clienteId:cid,monto:d.monto,medio:d.medio,nota:d.nota}; if(op) cobro.operacion=op;
-  const fin=adj=>{ cobro.id=sig('Z'); if(adj){ cobro.comprobante=adj; if(CB.hash) cobro.hash=CB.hash; } S.cobros.push(cobro); guardar(); cerrar(); refrescar(); toast(adj?'Cobro registrado con comprobante':'Cobro registrado'); };
+  const desdeFicha=!!CB.fijo, hash=CB.hash;
+  const fin=adj=>{ cobro.id=sig('Z'); if(adj){ cobro.comprobante=adj; if(hash) cobro.hash=hash; } S.cobros.push(cobro); guardar(); cerrar(); refrescar();
+    if(desdeFicha&&typeof fichaCliente==='function') fichaCliente(cid); toast(adj?'Cobro registrado con comprobante':'Cobro registrado'); };
   if(!CB.file) return fin(null);
   const b=$('#okb'), file=CB.file; b.disabled=true; b.textContent='Guardando…';
   adjGuardar(file).then(id=>fin({id,nombre:file.name,tipo:file.type})).catch(e=>{ b.disabled=false; b.textContent='Guardar'; const er=$('#err'); if(er) er.textContent='No se pudo guardar el archivo: '+(e&&e.message||e)+'.'; }); }
