@@ -246,6 +246,8 @@ function guardarCobro(d){
 ACT['cobro-comp']=()=>modalCobro(null,true);
 ACT['adj-ver']=el=>{ const cobro=S.cobros.find(x=>x.comprobante&&x.comprobante.id===el.dataset.id);
   adjLeer(el.dataset.id).then(a=>{ if(!a){ toast('El archivo no está en este dispositivo.',true); return; }
-  const u=URL.createObjectURL(a.blob), img=(a.tipo||'').startsWith('image/');
-  abrir('Comprobante · '+a.nombre,(cobro&&cobro.datosComp?datosHtml(cobro.datosComp):'')+(img?`<img src="${u}" alt="Comprobante" style="max-width:100%;border-radius:10px;margin-top:10px">`:`<iframe src="${u}" title="Comprobante" style="width:100%;height:65vh;border:0;border-radius:10px;margin-top:10px"></iframe>`),
+  const u=URL.createObjectURL(a.blob), img=(a.tipo||'').startsWith('image/')&&!/hei[cf]/.test(a.tipo), pdf=/pdf/.test(a.tipo||'')||/\.pdf$/i.test(a.nombre||'');
+  const vista=img?`<img src="${u}" alt="${esc(a.nombre)}" style="max-width:100%;border-radius:10px;margin-top:10px">`:pdf?`<iframe src="${u}" title="${esc(a.nombre)}" style="width:100%;height:65vh;border:0;border-radius:10px;margin-top:10px"></iframe>`
+    :`<div class="empty">Este tipo de archivo no se puede mostrar acá. Descargalo para abrirlo con su programa.</div>`;
+  abrir((cobro?'Comprobante · ':'Archivo · ')+a.nombre,(cobro&&cobro.datosComp?datosHtml(cobro.datosComp):'')+vista,
     {wide:true,foot:`<a class="btn" href="${u}" download="${esc(a.nombre)}">Descargar</a><button class="btn pri" data-act="cerrar">Cerrar</button>`}); }).catch(e=>toast('No se pudo abrir el archivo: '+(e&&e.message||e),true)); };

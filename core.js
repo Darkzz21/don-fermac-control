@@ -38,7 +38,7 @@ function sig(k){ S.seq[k]=(S.seq[k]||0)+1; return S.seq[k]; }
 function vacio(){
   return {v:1,config:{nombre:'Mi negocio',sub:'',logo:'',moneda:'$',rubro:'Fiambrería / Delicatessen',venc:true,peso:true,iva:21,diasVence:15,diasPrecio:90,ultimoRespaldo:null,demo:false,
       balanza:{on:false,prefijos:'20',largoPlu:5,valor:'peso',decimales:0}},
-    seq:{},productos:[],proveedores:[],catalogo:[],historial:[],lotes:[],movimientos:[],compras:[],ventas:[],clientes:[],cobros:[],ajustesCC:[],gastos:[],cajas:[],cajaMov:[]};
+    seq:{},productos:[],proveedores:[],catalogo:[],historial:[],lotes:[],movimientos:[],compras:[],ventas:[],clientes:[],cobros:[],ajustesCC:[],archivos:[],gastos:[],cajas:[],cajaMov:[]};
 }
 let _t=null;
 function guardar(){ clearTimeout(_t); _t=setTimeout(()=>{ try{ localStorage.setItem(LS_KEY,JSON.stringify(S)); S._guardadoOk=true; }catch(e){ S._guardadoOk=false; } },250); }
