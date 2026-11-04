@@ -82,6 +82,8 @@ function registrarPrecio(pid,vid,precio,fecha,origen){
 /* ---------- productos ---------- */
 function nuevoCodigo(){ let n=S.productos.length+1,c; const usados=new Set(S.productos.map(p=>p.codigo.toUpperCase())); do{ c='P'+String(n).padStart(4,'0'); n++; }while(usados.has(c)); return c; }
 function guardarProducto(d,id){
+  if(d.plu!=null&&String(d.plu).trim()!==''){ const v=String(d.plu).trim(); if(!/^\d{1,6}$/.test(v)) throw new Error('El PLU de balanza tiene que ser un número (por ejemplo 123).');
+    const otro=S.productos.find(x=>x.id!==id&&x.plu&&+x.plu===+v); if(otro) throw new Error('El PLU '+v+' ya lo usa «'+otro.nombre+'».'); }
   let p=id?prod(id):null;
   if(!p){ p={id:sig('P'),codigo:d.codigo||nuevoCodigo(),creado:hoy(),activo:true}; S.productos.push(p); }
   Object.assign(p,{nombre:d.nombre,categoria:d.categoria||'',barras:d.barras||'',plu:d.plu!=null?String(d.plu).trim():(p.plu||''),unidad:d.unidad||'u',costo:d.costo||0,precio:d.precio||0,minimo:d.minimo||0,notas:d.notas||'',activo:d.activo!==false});
@@ -90,6 +92,16 @@ function guardarProducto(d,id){
 function margen(p){ return p.precio>0?(p.precio-p.costo)/p.precio*100:0; }
 function estadoStock(p){ const s=stockDe(p.id); if(!p.activo) return 'Inactivo'; if(s<=0) return 'Sin stock'; if(s<=p.minimo) return 'Stock bajo'; return 'Normal'; }
 function diasPrecio(p){ const fs=S.catalogo.filter(c=>c.productoId===p.id).map(c=>c.fecha).concat(S.historial.filter(h=>h.productoId===p.id).map(h=>h.fecha)); if(!fs.length) return null; return difDias(hoy(),fs.sort().pop()); }
+
+/* ---------- etiquetas de balanza (EAN-13 que empieza con 2: prefijo + PLU + peso o importe + dígito verificador) ---------- */
+function ean13ok(c){ let s=0; for(let i=0;i<12;i++) s+=+c[i]*(i%2?3:1); return (10-s%10)%10===+c[12]; }
+function leerEtiquetaBalanza(cod){ const b=S.config.balanza; const c=String(cod||'').trim(); if(!b||!b.on||!/^\d{13}$/.test(c)) return null;
+  const pref=String(b.prefijos||'20').split(/[^\d]+/).filter(Boolean); if(!pref.some(p=>c.startsWith(p))) return null;
+  const L=+b.largoPlu===4?4:5, plu=c.slice(2,2+L), bruto=+c.slice(2+L,12);
+  const p=S.productos.find(x=>x.activo&&x.plu&&+x.plu===+plu)||null;
+  const r={codigo:c,plu:String(+plu),p,ok:ean13ok(c),valor:b.valor==='precio'?'precio':'peso',kg:null,importe:null};
+  if(r.valor==='peso') r.kg=r3(bruto/1000); else { r.importe=r2(bruto/Math.pow(10,+b.decimales||0)); if(p&&p.precio>0) r.kg=r3(r.importe/p.precio); }
+  return r; }
 
 /* ---------- ventas ---------- */
 function totalesVenta(items,descPct){

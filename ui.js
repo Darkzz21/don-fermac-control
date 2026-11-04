@@ -144,7 +144,7 @@ VIEWS.ventas=function(){
 ACT['tab-ventas']=el=>{ UI.ventasTab=el.dataset.t; render(); };
 ACT['pos-cat']=el=>{ UI.f.pos.cat=el.dataset.c; render(); };
 function posLista(){ const f=UI.f.pos; const q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  return S.productos.filter(p=>p.activo&&(!f.cat||p.categoria===f.cat)&&(!q||p.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||p.codigo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||(p.barras&&p.barras.includes(q)))); }
+  return S.productos.filter(p=>p.activo&&(!f.cat||p.categoria===f.cat)&&(!q||p.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||p.codigo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||(p.barras&&p.barras.includes(q))||(p.plu&&String(p.plu)===q))); }
 FILL.ventas=function(){ const r=$('#res'); if(!r) return;
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; const q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
     const l=S.ventas.filter(v=>(!f.desde||v.fecha>=f.desde)&&(!f.hasta||v.fecha<=f.hasta)&&(!q||('#'+v.id).includes(q)||String(v.id)===q||cliNom(v.clienteId).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||v.medio.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q))).sort((a,b)=>b.id-a.id).slice(0,300);
@@ -153,8 +153,18 @@ FILL.ventas=function(){ const r=$('#res'); if(!r) return;
   r.innerHTML=l.length?`<div class="tiles">${l.map(p=>{ const s=stockDe(p.id); return `<button class="tile ${s<=0?'out':''}" data-act="pos-add" data-id="${p.id}"><span class="nm">${esc(p.nombre)}</span><span class="pr">${money(p.precio)}${p.unidad==='kg'?' / kg':''}</span><span class="st ${s<=p.minimo?'dn':''}">Stock: ${qtyTxt(p,s)}</span></button>`; }).join('')}</div>`:vacioHtml(S.productos.length?'No encontré productos con esa búsqueda.':'Todavía no cargaste productos.');
 };
 AFTER.ventas=function(){ FILL.ventas(); if(UI.ventasTab==='vender'){ renderCart(); const q=$('#posq'); if(q&&!UI.f.pos.q) q.focus(); } };
-ACT['pos-enter']=function(){ const l=posLista(); const q=UI.f.pos.q.trim(); if(!q||!l.length) return;
-  const ex=l.find(p=>p.barras===q||p.codigo.toLowerCase()===q.toLowerCase())||l[0]; ACT['pos-add']({dataset:{id:ex.id}}); UI.f.pos.q=''; const i=$('#posq'); if(i){ i.value=''; FILL.ventas(); i.focus(); } };
+function limpiarPos(){ UI.f.pos.q=''; const i=$('#posq'); if(i){ i.value=''; FILL.ventas(); i.focus(); } }
+ACT['pos-enter']=function(){ const l=posLista(); const q=UI.f.pos.q.trim(); if(!q) return;
+  const exacto=l.find(p=>p.barras===q||p.codigo.toLowerCase()===q.toLowerCase());
+  if(!exacto){ const e=leerEtiquetaBalanza(q); if(e){ limpiarPos(); agregarEtiqueta(e); return; } }
+  if(!l.length) return; ACT['pos-add']({dataset:{id:(exacto||l[0]).id}}); limpiarPos(); };
+function agregarEtiqueta(e){ // etiqueta impresa por la balanza: el producto sale del PLU y la cantidad del peso o del importe
+  if(!e.p){ toast('Etiqueta de balanza con PLU '+e.plu+': no hay ningún producto con ese PLU. Cargalo en la ficha del producto.',true); return; }
+  const p=e.p; if(!e.ok) toast('Ojo: el código de la etiqueta no verifica (puede estar mal leído). Revisá la cantidad.',true);
+  if(p.unidad!=='kg'){ addCart(p.id,1); if(e.importe!=null){ const it=UI.cart.items.find(i=>i.productoId===p.id); if(it&&it.cant===1){ it.precio=e.importe; renderCart(); } } if(e.ok) toast('Balanza: '+p.nombre); return; }
+  if(!(e.kg>0)){ toast('No pude calcular el peso de «'+p.nombre+'»'+(e.valor==='precio'?': el producto no tiene precio por kg.':'.'),true); return; }
+  const q0=(UI.cart.items.find(i=>i.productoId===p.id)||{cant:0}).cant; addCart(p.id,e.kg);
+  if(e.ok&&(UI.cart.items.find(i=>i.productoId===p.id)||{cant:0}).cant>q0) toast('Balanza: '+p.nombre+' · '+qtyTxt(p,e.kg)+(e.importe!=null?' · '+money2(e.importe):'')); }
 ACT['pos-add']=function(el){ const p=prod(+el.dataset.id); if(!p) return; if(stockDe(p.id)<=0){ toast('«'+p.nombre+'» no tiene stock.',true); return; }
   if(p.unidad==='kg') pedirPeso(p); else addCart(p.id,1); };
 function addCart(pid,cant){ const p=prod(pid); const it=UI.cart.items.find(i=>i.productoId===pid); const nueva=r3((it?it.cant:0)+cant);

@@ -28,6 +28,7 @@ function camposProducto(p){ const nuevo=!p;
   const c=[{n:'nombre',l:'Nombre',t:'text',req:true,full:true},{n:'codigo',l:'Código interno',t:'text',ro:!nuevo,ph:'Se genera solo'},{n:'barras',l:'Código de barras',t:'text',ph:'Opcional'},
     {n:'categoria',l:'Categoría',t:'text',list:cats().concat(RUBROS[S.config.rubro]?RUBROS[S.config.rubro].cats:[]).filter((x,i,a)=>a.indexOf(x)===i)}];
   if(S.config.peso) c.push({n:'unidad',l:'Se vende por',t:'select',o:[{v:'u',t:'Unidad'},{v:'kg',t:'Peso (kg)'}]});
+  if(S.config.peso||S.config.balanza.on) c.push({n:'plu',l:'PLU de balanza',t:'text',ph:'Ej. 123',hint:'El número del producto en la balanza, para leer sus etiquetas.'});
   c.push({n:'costo',l:'Costo ($)',t:'num',min:0,live:'margen'},{n:'precio',l:'Precio de venta ($)',t:'num',min:0,live:'margen',hint:''},{n:'minimo',l:'Stock mínimo',t:'num',min:0});
   if(nuevo){ c.push({n:'stock',l:'Stock inicial',t:'num',min:0},{n:'proveedor',l:'Proveedor (opcional)',t:'select',o:selProveedores('(ninguno)')}); }
   c.push({n:'activo',l:'Producto activo',t:'check'},{n:'notas',l:'Notas',t:'area',full:true}); return c; }
@@ -287,6 +288,14 @@ VIEWS.ajustes=function(){ const c=S.config; const ur=c.ultimoRespaldo;
    <label class="field inline"><input type="checkbox" name="venc" ${c.venc?'checked':''}> Controlar vencimientos y lotes</label><label class="field inline"><input type="checkbox" name="peso" ${c.peso?'checked':''}> Vendo productos al peso (kg)</label>
    <label class="field">IVA habitual en compras (%)<input name="iva" value="${fnum(c.iva)}" inputmode="decimal"></label><label class="field">Avisar vencimientos con (días)<input name="diasVence" value="${c.diasVence}" inputmode="numeric"></label><label class="field">Precio desactualizado después de (días)<input name="diasPrecio" value="${c.diasPrecio}" inputmode="numeric"></label>
    <label class="field">Logo de tu negocio (opcional)<input type="file" id="logof" accept="image/*"></label></form><div class="bar" style="margin-top:12px"><button class="btn pri" data-act="cfg-guardar">Guardar ajustes</button><button class="btn" data-act="logo-reset">Quitar logo</button></div></div>
+  ${(()=>{ const b=c.balanza; return `<div class="card"><h2>Balanza con etiquetas</h2><p class="sm muted" style="margin-top:0">Si tu balanza (Systel, Kretz, etc.) imprime etiquetas con código de barras, al escanearlas en Ventas se carga el producto con su peso. Cada producto necesita su <b>PLU de balanza</b> en la ficha. Los datos del formato están en el manual o en la configuración de la balanza.</p>
+   <form id="bal" class="frm" autocomplete="off"><label class="field inline full"><input type="checkbox" name="on" ${b.on?'checked':''}> Leer etiquetas de balanza al vender</label>
+   <label class="field">Prefijos de la etiqueta<input name="prefijos" value="${esc(b.prefijos)}" placeholder="20"><span class="muted" style="font-weight:400;font-size:12px">Los 2 primeros dígitos del código. Varios separados por coma: 20, 21</span></label>
+   <label class="field">Largo del PLU<select name="largoPlu">${opts([{v:5,t:'5 dígitos'},{v:4,t:'4 dígitos'}],b.largoPlu)}</select></label>
+   <label class="field">La etiqueta trae<select name="valor">${opts([{v:'peso',t:'El peso en gramos'},{v:'precio',t:'El importe a cobrar'}],b.valor)}</select></label>
+   <label class="field">Decimales del importe<select name="decimales">${opts([{v:0,t:'Sin decimales ($ 1234)'},{v:1,t:'1 decimal ($ 123,4)'},{v:2,t:'2 decimales ($ 12,34)'}],b.decimales)}</select></label>
+   <label class="field full">Probar con un código<input id="balt" data-live="bal-test" placeholder="Escaneá o escribí el código de una etiqueta" inputmode="numeric"><span id="balr" class="sm" style="font-weight:400"></span></label></form>
+   <div class="bar" style="margin-top:12px"><button class="btn pri" data-act="bal-guardar">Guardar balanza</button></div></div>`; })()}
   <div class="grid g2"><div class="card"><h2>Respaldo</h2><p class="sm muted" style="margin-top:0">Tus datos se guardan en este navegador. Si borrás los datos del navegador o cambiás de computadora se pierden, por eso hay que respaldarlos seguido. ${ur?'Último respaldo: <b>'+fechaTxt(ur)+'</b>.':'<b>Todavía no hiciste ninguno.</b>'}</p>
    <div class="bar"><button class="btn pri" data-act="resp-exp">Descargar respaldo</button><label class="btn">Restaurar respaldo<input type="file" id="respf" accept=".json" hidden></label></div></div>
    <div class="card"><h2>Pasar los datos del programa anterior</h2><p class="sm muted" style="margin-top:0">Elegí el archivo <b>gestion.json</b> de la carpeta «Datos» del programa de escritorio. Se importan productos, proveedores, precios, compras, gastos y movimientos de stock. <b>Reemplaza los datos actuales.</b></p>
@@ -296,6 +305,13 @@ CHG.rubro=el=>{ aplicarRubro(el.value); const f=$('#cfg'); f.elements.venc.check
 ACT['cfg-guardar']=()=>{ const f=$('#cfg').elements; const c=S.config; const iva=num(f.iva.value),dv=num(f.diasVence.value),dp=num(f.diasPrecio.value);
   if(iva==null||dv==null||dp==null||!f.nombre.value.trim()){ toast('Revisá el nombre y los números.',true); return; }
   Object.assign(c,{nombre:f.nombre.value.trim(),sub:f.sub.value.trim(),rubro:f.rubro.value,moneda:f.moneda.value.trim()||'$',venc:f.venc.checked,peso:f.peso.checked,iva,diasVence:Math.round(dv),diasPrecio:Math.round(dp)}); guardar(); pintarMarco(); render(); toast('Ajustes guardados'); };
+function leerBal(){ const f=$('#bal').elements; return {on:f.on.checked,prefijos:f.prefijos.value.trim()||'20',largoPlu:+f.largoPlu.value,valor:f.valor.value,decimales:+f.decimales.value}; }
+ACT['bal-guardar']=()=>{ const b=leerBal(); if(!/^\d{2}(\s*,\s*\d{2})*$/.test(b.prefijos)){ toast('Los prefijos tienen que ser de 2 dígitos, separados por coma (por ejemplo 20, 21).',true); return; } S.config.balanza=b; guardar(); toast('Balanza guardada'); LIVE['bal-test'](); };
+LIVE['bal-test']=()=>{ const t=$('#balt'),r=$('#balr'); if(!t||!r) return; const v=t.value.replace(/\D/g,''); if(!v){ r.textContent=''; return; }
+  const prev=S.config.balanza; S.config.balanza=Object.assign(leerBal(),{on:true}); let e; try{ e=leerEtiquetaBalanza(v); }finally{ S.config.balanza=prev; }
+  if(v.length!==13){ r.innerHTML='<span class="muted">El código tiene que tener 13 dígitos ('+v.length+').</span>'; return; }
+  if(!e){ r.innerHTML='<span class="dn">No empieza con ninguno de los prefijos configurados.</span>'; return; }
+  r.innerHTML=`${e.ok?'':'<span class="dn">El dígito verificador no coincide. </span>'}PLU <b>${esc(e.plu)}</b> → ${e.p?'<b>'+esc(e.p.nombre)+'</b>':'<span class="dn">ningún producto tiene ese PLU</span>'} · ${e.valor==='peso'?'peso <b>'+qtyTxt({unidad:'kg'},e.kg)+'</b>':'importe <b>'+money2(e.importe)+'</b>'+(e.kg!=null?' = '+qtyTxt({unidad:'kg'},e.kg):'')}`; };
 ACT['logo-reset']=()=>{ S.config.logo=''; guardar(); pintarMarco(); toast('Logo quitado'); };
 ACT['resp-exp']=()=>{ const t=exportarJSON(); descargar('respaldo_'+S.config.nombre.toLowerCase().replace(/[^a-z0-9]+/g,'_')+'_'+hoy()+'.json',t); setTimeout(()=>{ if(UI.vista==='ajustes') render(); },300); };
 ACT['demo-cargar']=()=>confirmar('Se reemplazan los datos actuales por los de ejemplo. ¿Seguir?',()=>{ cargarDemo(); pintarMarco(); render(); toast('Datos de ejemplo cargados'); },'Cargar ejemplo',false);
