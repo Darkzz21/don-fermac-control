@@ -119,10 +119,20 @@ function crearVenta(d){ // d:{items:[{productoId,cant,precio}],clienteId,medio,d
 }
 function anularVenta(id){
   const v=S.ventas.find(x=>x.id===id); if(!v||v.estado==='Anulada') return;
-  v.items.forEach(i=>{ mov(i.productoId,'Entrada',i.cant,'Anulación venta #'+id,{t:'venta',id});
+  v.items.forEach(i=>{ if(!i.productoId) return; // venta sin detalle: no mueve stock
+    mov(i.productoId,'Entrada',i.cant,'Anulación venta #'+id,{t:'venta',id});
     (i.lotes||[]).forEach(u=>{ const l=S.lotes.find(x=>x.id===u.loteId); if(l) l.cant=r3(l.cant+u.cant); }); });
   v.estado='Anulada'; guardar();
 }
+// Venta cargada solo con el comprobante (sin productos): suma a ventas y caja, y el costo se estima con el margen promedio
+function margenPromedio(){ const vs=ventasValidas(addDias(hoy(),-30),hoy()).filter(v=>!v.sinDetalle); const ing=vs.reduce((a,v)=>a+v.total,0);
+  if(ing>0) return Math.max(0,Math.min(0.9,(ing-vs.reduce((a,v)=>a+costoVenta(v),0))/ing));
+  const ps=S.productos.filter(p=>p.activo&&p.precio>0); return ps.length?Math.max(0,Math.min(0.9,ps.reduce((a,p)=>a+margen(p),0)/ps.length/100)):0.3; }
+function crearVentaSinDetalle(d){ // d:{monto,medio,clienteId,fecha,hora,concepto}
+  const m=margenPromedio(), n=sig('V');
+  const v={id:n,fecha:d.fecha||hoy(),hora:d.hora||hoyHora(),clienteId:d.clienteId||null,items:[{productoId:0,nombre:'Venta sin detalle'+(d.concepto?' · '+d.concepto:''),unidad:'u',cant:1,precio:d.monto,costo:r2(d.monto*(1-m)),lotes:[],estimado:true}],
+    sub:d.monto,descPct:0,desc:0,total:d.monto,medio:d.medio,recibido:null,estado:'Registrada',sinDetalle:true,margenEst:r2(m*100)};
+  S.ventas.push(v); guardar(); return v; }
 function ventasValidas(desde,hasta){ return S.ventas.filter(v=>v.estado!=='Anulada'&&(!desde||v.fecha>=desde)&&(!hasta||v.fecha<=hasta)); }
 function costoVenta(v){ return r2(v.items.reduce((a,i)=>a+i.cant*i.costo,0)); }
 /* ---------- cuenta corriente: planilla con debe / haber / saldo y ciclos de cierre ---------- */

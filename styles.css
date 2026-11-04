@@ -179,6 +179,9 @@ tr.tot td{font-weight:700;background:var(--soft)}
 .dcol h3{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 6px;font-weight:700}
 .dcol div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}.dcol div span{color:var(--muted)}.dcol div b{text-align:right;overflow-wrap:anywhere}
 .chkbar{background:none!important;padding:2px 0!important}
+.cartcomp{margin-top:8px;padding:7px 10px;border-radius:10px;background:var(--soft);font-size:12.5px;display:flex;flex-direction:column;gap:4px}
+.cartcomp .cc1{display:flex;align-items:center;gap:6px}.cartcomp .cc1 b{flex:1;min-width:0;overflow-wrap:anywhere}
+.cartcomp .cc2{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;color:var(--muted)}.cartcomp .cc2 .pill{white-space:normal}
 .archi{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 8px;border-radius:8px;background:var(--soft);margin-top:6px;font-size:13px}
 .archi span{min-width:0;overflow-wrap:anywhere}
 .ccv{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:14px;align-items:start}

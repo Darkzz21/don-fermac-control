@@ -159,14 +159,17 @@ function sugerirCliente(d){ if(!d) return null; let r=null; for(const c of S.cli
 /* ---------- modal de cobro con comprobante ---------- */
 const CLIP='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="vertical-align:-3px"><path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 7.5"/></svg>';
 let CB=null;
-const optsClientes=()=>[{v:'',t:'— Elegí el cliente —'}].concat(S.clientes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(x=>{ const s=saldoCliente(x.id); return {v:x.id,t:x.nombre+(s>0?' · debe '+money(s):s<0?' · a favor '+money(-s):'')}; }));
-function modalCobro(clienteId,abrirSelector){
-  CB={file:null,hash:null,datos:null,texto:'',sugerido:null,fijo:clienteId||null};
-  const c=clienteId?IDX.cli[clienteId]:null; const campos=[];
-  if(!c) campos.push({n:'cliente',l:'Cliente',t:'select',req:true,full:true,live:'cobro-chk',o:optsClientes()});
-  campos.push({n:'monto',l:'Monto cobrado ($)',t:'num',req:true,min:0.01,live:'cobro-chk'},{n:'medio',l:'Medio',t:'select',o:MEDIOS.filter(m=>m!=='Cuenta corriente')},
-    {n:'fecha',l:'Fecha',t:'date',live:'cobro-chk'},{n:'operacion',l:'N° de operación',t:'text',ph:'Se completa con el comprobante',live:'cobro-chk'},{n:'nota',l:'Nota',t:'text',full:true});
-  formModal('Registrar cobro'+(c?' · '+c.nombre:''),campos,{monto:c&&saldoCliente(c.id)>0?saldoCliente(c.id):'',fecha:hoy()},guardarCobro,{wide:true});
+const optsClientes=(modo)=>[{v:'',t:modo&&modo!=='cobro'?'Consumidor final':'— Elegí el cliente —'}].concat(S.clientes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(x=>{ const s=saldoCliente(x.id); return {v:x.id,t:x.nombre+(s>0?' · debe '+money(s):s<0?' · a favor '+money(-s):'')}; }));
+// modo: 'cobro' (pago de cuenta corriente), 'venta' (venta cargada solo con el comprobante) o 'carrito' (comprobante de la venta que se está armando)
+function modalCobro(clienteId,abrirSelector,modo){ modo=modo||'cobro';
+  CB={file:null,hash:null,datos:null,texto:'',sugerido:null,fijo:clienteId||null,modo,total:modo==='carrito'?totalesVenta(UI.cart.items,num(UI.cart.descPct)||0).total:0};
+  const c=clienteId?IDX.cli[clienteId]:null; const campos=[], cobro=modo==='cobro';
+  if(!c) campos.push({n:'cliente',l:'Cliente',t:'select',req:cobro,full:true,live:'cobro-chk',o:optsClientes(modo)});
+  campos.push({n:'monto',l:cobro?'Monto cobrado ($)':modo==='venta'?'Monto de la venta ($)':'Monto del comprobante ($)',t:'num',req:true,min:0.01,live:'cobro-chk'},{n:'medio',l:'Medio de pago',t:'select',o:MEDIOS.filter(m=>m!=='Cuenta corriente')},
+    {n:'fecha',l:'Fecha',t:'date',live:'cobro-chk'},{n:'operacion',l:'N° de operación',t:'text',ph:'Se completa con el comprobante',live:'cobro-chk'},{n:'nota',l:modo==='venta'?'Detalle (opcional)':'Nota',t:'text',full:true,ph:modo==='venta'?'Ej. Picada para 10, pedido de Marta':''});
+  const vals={fecha:hoy(),medio:cobro?undefined:'Transferencia',monto:c&&cobro&&saldoCliente(c.id)>0?saldoCliente(c.id):modo==='carrito'?CB.total:''};
+  formModal(cobro?'Registrar cobro'+(c?' · '+c.nombre:''):modo==='venta'?'Cargar venta con comprobante':'Adjuntar comprobante a la venta',campos,vals,cobro?guardarCobro:modo==='venta'?guardarVentaComp:guardarCompCarrito,
+    {wide:true,okText:cobro?'Guardar':modo==='venta'?'Registrar venta':'Usar en esta venta'});
   $('#mdb').insertAdjacentHTML('afterbegin',`<div class="comp" id="compz"><input type="file" id="compf" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,.pdf" hidden>
     <button class="btn" type="button" id="compb">${CLIP} Subir comprobante</button><span class="sm muted" id="compst">Foto (JPG, PNG, HEIC del iPhone), captura o PDF del pago. También podés arrastrarlo o pegar una captura con Ctrl+V. Leo todos los datos y completo el formulario.</span><div id="compdat" style="width:100%"></div><div class="chk" id="compchk"></div></div>`);
   const z=$('#compz'), inp=$('#compf');
@@ -202,20 +205,25 @@ function autocompletar(d){ const f=$('#frm'); const h=[]; const set=(n,v,t)=>{ i
 document.addEventListener('paste',e=>{ if(!$('#compz')||!CB) return; const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type)); if(!it) return;
   e.preventDefault(); const b=it.getAsFile(); if(b) procesarComprobante(new File([b],'captura-'+hoy()+'.'+((b.type.split('/')[1]||'png').replace('jpeg','jpg')),{type:b.type})); });
 LIVE['cobro-chk']=()=>pintarChequeos();
-function dupDe(op,hash){ const o=String(op||'').trim().toLowerCase(); return {op:o?S.cobros.find(x=>x.operacion&&x.operacion.toLowerCase()===o):null,hash:hash?S.cobros.find(x=>x.hash===hash):null}; }
+// un comprobante no se puede usar dos veces: ni en otro cobro ni en otra venta
+function dupDe(op,hash){ const o=String(op||'').trim().toLowerCase(); const todos=S.cobros.concat(S.ventas.filter(v=>v.estado!=='Anulada'));
+  return {op:o?todos.find(x=>x.operacion&&x.operacion.toLowerCase()===o):null,hash:hash?todos.find(x=>x.hash===hash):null}; }
+const dupTxt=x=>(x.items?'la venta #'+x.id:'el cobro')+' del '+fechaTxt(x.fecha)+(x.clienteId?' a '+cliNom(x.clienteId):'')+' por '+money2(x.items?x.total:x.monto);
 function pintarChequeos(){ const box=$('#compchk'),f=$('#frm'); if(!box||!f||!CB) return; const L=[]; const g=n=>f.elements[n]?f.elements[n].value.trim():'';
-  const esNuevo=!CB.fijo&&g('cliente')==='__nuevo';
+  const esNuevo=!CB.fijo&&g('cliente')==='__nuevo', cobro=CB.modo==='cobro';
   const cid=CB.fijo||(esNuevo?null:+g('cliente'))||null, monto=num(g('monto')), fecha=g('fecha'), d=CB.datos, dup=dupDe(g('operacion'),CB.hash);
-  if(dup.op) L.push(['bad','Ese N° de operación ya está cargado: cobro del '+fechaTxt(dup.op.fecha)+' a '+cliNom(dup.op.clienteId)+' por '+money2(dup.op.monto)+'.']);
-  if(dup.hash&&dup.hash!==dup.op) L.push(['bad','Este mismo archivo ya se subió en el cobro del '+fechaTxt(dup.hash.fecha)+' a '+cliNom(dup.hash.clienteId)+'.']);
+  if(dup.op) L.push(['bad','Ese N° de operación ya está cargado en '+dupTxt(dup.op)+'.']);
+  if(dup.hash&&dup.hash!==dup.op) L.push(['bad','Este mismo archivo ya se usó en '+dupTxt(dup.hash)+'.']);
   if(d){ if(d.monto==null) L.push(['warn','No encontré el monto en el comprobante.']); if(!d.fecha) L.push(['warn','No encontré la fecha en el comprobante.']);
     const quien=d.nombre||(d.cuits[0]?'CUIT '+cuitTxt(d.cuits[0]):'');
     if(CB.fijo){ const c=IDX.cli[CB.fijo]; if(quien){ const por=coincide(c,d); L.push(por?['good','El pago es de '+c.nombre+' (coincide por '+por+').']:['warn','El comprobante parece de «'+quien+'», no de '+c.nombre+'. Revisá que sea el cliente correcto.']); } }
-    else if(esNuevo) L.push(['info','Al guardar se anota a '+d.nombre+' como cliente nuevo'+(d.origen.cuit?' con CUIT '+cuitTxt(d.origen.cuit):'')+'. Si ya era cliente con otro nombre, elegilo en la lista.']);
+    else if(esNuevo) L.push(['info','Al guardar se anota a '+d.nombre+' como cliente nuevo'+(d.origen.cuit?' con CUIT '+cuitTxt(d.origen.cuit):'')+'. Si ya era cliente con otro nombre, elegilo en la lista'+(cobro?'':' o elegí «Consumidor final»')+'.']);
     else if(CB.sugerido&&String(CB.sugerido.c.id)===g('cliente')) L.push(['good','Reconocí al cliente por '+CB.sugerido.por+': '+CB.sugerido.c.nombre+'.']);
     else if(quien&&!d.nombre) L.push(['info','El comprobante no trae el nombre de quien pagó (CUIT '+cuitTxt(d.cuits[0])+'). Elegí el cliente en la lista.']); }
-  if(esNuevo&&monto>0) L.push(['info','Como es cliente nuevo y no tiene deuda, el pago queda como saldo a favor.']);
-  if(cid&&monto!=null&&monto>0){ const s=saldoCliente(cid);
+  if(CB.modo==='venta'&&monto>0){ const m=margenPromedio(); L.push(['info','Se registra una venta de '+money2(monto)+' con ganancia estimada de '+money2(r2(monto*m))+' (margen promedio de tus ventas: '+fmt(m*100,0)+'%). Para la ganancia exacta, cargá los productos en Vender y adjuntá el comprobante ahí.']); }
+  if(CB.modo==='carrito'&&monto>0) L.push(Math.abs(monto-CB.total)<0.005?['good','El monto coincide con el total de la venta ('+money2(CB.total)+').']:['warn','El comprobante es por '+money2(monto)+' y la venta suma '+money2(CB.total)+' (diferencia de '+money2(Math.abs(r2(monto-CB.total)))+'). Revisá los productos o el comprobante.']);
+  if(cobro&&esNuevo&&monto>0) L.push(['info','Como es cliente nuevo y no tiene deuda, el pago queda como saldo a favor.']);
+  if(cobro&&cid&&monto!=null&&monto>0){ const s=saldoCliente(cid);
     if(monto>s+0.005) L.push(['warn',s>0.004?'Paga '+money2(r2(monto-s))+' más de lo que debe: le queda saldo a favor.':cliNom(cid)+' no tiene deuda: el pago queda como saldo a favor.']);
     else L.push(Math.abs(monto-s)<0.005?['good','Cancela todo el saldo de '+cliNom(cid)+'.']:['info','Después de este cobro, '+cliNom(cid)+' queda debiendo '+money2(r2(s-monto))+'.']); }
   if(fecha){ if(fecha>hoy()) L.push(['warn','La fecha es posterior a hoy.']); else if(difDias(hoy(),fecha)>60) L.push(['warn','El comprobante tiene más de 60 días.']); }
@@ -243,8 +251,29 @@ function guardarCobro(d){
   const b=$('#okb'), file=CB.file; b.disabled=true; b.textContent='Guardando…';
   adjGuardar(file).then(id=>fin({id,nombre:file.name,tipo:file.type})).catch(e=>{ b.disabled=false; b.textContent='Guardar'; const er=$('#err'); if(er) er.textContent='No se pudo guardar el archivo: '+(e&&e.message||e)+'.'; }); }
 
+/* ---------- ventas con comprobante ---------- */
+function clienteDelForm(d){ if(CB.fijo) return CB.fijo; if(d.cliente==='__nuevo') return CB.datos&&CB.datos.nombre?clienteDesdeComprobante(CB.datos).id:null; return +d.cliente||null; }
+function chequearDup(op){ const dup=dupDe(op,CB.hash);
+  if(dup.op) throw new Error('Ese N° de operación ya está cargado en '+dupTxt(dup.op)+'. Si es otro pago, revisá el número.');
+  if(dup.hash) throw new Error('Este comprobante ya se usó en '+dupTxt(dup.hash)+'.'); }
+// guarda el archivo y lo deja pegado a la venta (no frena la venta si el archivo falla)
+function adjuntarAVenta(v,comp){ if(comp.operacion) v.operacion=comp.operacion; if(comp.datos) v.datosComp=comp.datos; if(comp.hash) v.hash=comp.hash; guardar();
+  if(!comp.file) return Promise.resolve(); return adjGuardar(comp.file).then(id=>{ v.comprobante={id,nombre:comp.file.name,tipo:comp.file.type}; guardar(); })
+    .catch(e=>toast('La venta quedó registrada, pero no se pudo guardar el archivo: '+(e&&e.message||e),true)); }
+function guardarVentaComp(d){ const op=(d.operacion||'').trim(); chequearDup(op);
+  const comp={file:CB.file,hash:CB.hash,datos:CB.datos,operacion:op}, cid=clienteDelForm(d);
+  const v=crearVentaSinDetalle({monto:d.monto,medio:d.medio,clienteId:cid,fecha:d.fecha||hoy(),hora:CB.datos&&CB.datos.hora||undefined,concepto:d.nota});
+  const b=$('#okb'); if(b){ b.disabled=true; b.textContent='Guardando…'; }
+  adjuntarAVenta(v,comp).then(()=>{ cerrar(); indexar(); refrescar(); verTicket(v,true); toast('Venta #'+v.id+' registrada con comprobante'); }); }
+function guardarCompCarrito(d){ const op=(d.operacion||'').trim(); chequearDup(op); const cid=clienteDelForm(d);
+  UI.cart.comp={file:CB.file,hash:CB.hash,datos:CB.datos,operacion:op,monto:d.monto}; UI.cart.medio=d.medio; UI.cart.clienteId=cid?String(cid):''; if(d.fecha&&d.fecha!==hoy()) UI.cart.fecha=d.fecha;
+  cerrar(); if(typeof renderCart==='function') renderCart(); toast('Comprobante listo: se guarda al cobrar la venta'); }
+ACT['venta-comp']=()=>modalCobro(null,true,'venta');
+ACT['cart-comp']=()=>{ if(!UI.cart.items.length){ toast('Primero agregá los productos de la venta.',true); return; } modalCobro(null,true,'carrito'); };
+ACT['cart-comp-del']=()=>{ UI.cart.comp=null; renderCart(); };
+
 ACT['cobro-comp']=()=>modalCobro(null,true);
-ACT['adj-ver']=el=>{ const cobro=S.cobros.find(x=>x.comprobante&&x.comprobante.id===el.dataset.id);
+ACT['adj-ver']=el=>{ const cobro=S.cobros.find(x=>x.comprobante&&x.comprobante.id===el.dataset.id)||S.ventas.find(x=>x.comprobante&&x.comprobante.id===el.dataset.id);
   adjLeer(el.dataset.id).then(a=>{ if(!a){ toast('El archivo no está en este dispositivo.',true); return; }
   const u=URL.createObjectURL(a.blob), img=(a.tipo||'').startsWith('image/')&&!/hei[cf]/.test(a.tipo), pdf=/pdf/.test(a.tipo||'')||/\.pdf$/i.test(a.nombre||'');
   const vista=img?`<img src="${u}" alt="${esc(a.nombre)}" style="max-width:100%;border-radius:10px;margin-top:10px">`:pdf?`<iframe src="${u}" title="${esc(a.nombre)}" style="width:100%;height:65vh;border:0;border-radius:10px;margin-top:10px"></iframe>`
