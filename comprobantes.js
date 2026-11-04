@@ -73,7 +73,8 @@ function cuitValido(c){ if(!/^\d{11}$/.test(c)) return false; const m=[5,4,3,2,7
 const cuitTxt=c=>c&&c.length===11?c.slice(0,2)+'-'+c.slice(2,10)+'-'+c[10]:(c||'');
 function fechaDe(s){ let dd,mm,yy,m=s.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4}|\d{2})\b/);
   if(m){ dd=+m[1]; mm=+m[2]; yy=+m[3]; }
-  else { m=s.match(/\b(\d{1,2})\s+(?:de\s+)?([a-z]{3,10})\.?,?\s+(?:de\s+)?(\d{4})\b/); if(!m||!MESES[m[2]]) return null; dd=+m[1]; mm=MESES[m[2]]; yy=+m[3]; }
+  else { // «4 de noviembre de 2026», «31/octubre/2026», «31-oct-2026», «04 nov. 2026»
+    m=s.match(/\b(\d{1,2})\s*[\/\-.]?\s*(?:de\s+)?([a-z]{3,10})\.?\s*[\/\-.,]?\s*(?:del?\s+)?(\d{4})\b/); if(!m||!MESES[m[2]]) return null; dd=+m[1]; mm=MESES[m[2]]; yy=+m[3]; }
   if(yy<100) yy+=2000; if(mm<1||mm>12||dd<1||dd>31||yy<2000||yy>2100) return null; return yy+'-'+pad(mm)+'-'+pad(dd); }
 const horaDe=s=>{ const m=s.match(/\b([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?\b/); return m?pad(+m[1])+':'+m[2]:''; };
 const bancoDe=n=>{ const b=BANCOS.find(([k,,debil])=>(!debil||/\bbanco\b|\bbco\b/.test(n))&&new RegExp('\\b'+k+'\\b').test(n)); return b?b[1]:''; };
@@ -108,8 +109,16 @@ function parsearComprobante(texto){
   for(let i=0;i<N.length&&!d.concepto;i++){ const m=N[i].match(/^(concepto|motivo|descripcion|mensaje|detalle|asunto)\b/); if(!m) continue;
     const v=desde(i,m[0].length)||(lin[i+1]&&!/:/.test(lin[i+1])?lin[i+1]:''); if(v&&v.length<=80&&!/^\$/.test(v)) d.concepto=v; }
   // datos de cada parte: se recorre el texto y cada «De / Origen» o «Para / Destino» abre una sección
+  // Si el comprobante no dice «De / Para» (Mercado Pago pone «Origen y destino» y abajo los dos bloques),
+  // el primer nombre seguido de sus datos (CUIT, CVU, banco…) es quien pagó y el segundo, quien recibió.
+  const datoCuenta=n=>/(cuit|cuil|cvu|cbu|alias|cuenta|caja de ahorro)/.test(n)||!!bancoDe(n);
+  const bloque=i=>[1,2,3].some(k=>N[i+k]&&datoCuenta(N[i+k]));
+  let seq=!N.some(n=>SEC_O.test(n)&&!/^origen y destino/.test(n)||SEC_D.test(n));
   let sec=null,pend=null,ttl=0,bancoArriba='';
   for(let i=0;i<N.length;i++){ const n=N[i],l=lin[i]; let m,s=null; if(!sec&&!bancoArriba) bancoArriba=bancoDe(n); // el banco del encabezado es el que emite el comprobante
+    if(/^origen y destino\b/.test(n)){ seq=true; sec=null; continue; }
+    if(/(operacion|transaccion)/.test(n)) seq=false;
+    if(seq&&nomOk(l)&&bloque(i)){ if(!d.origen.nombre){ d.origen.nombre=l; sec='o'; continue; } if(!d.destino.nombre){ d.destino.nombre=l; sec='d'; continue; } }
     if((m=n.match(SEC_D))||n==='a'||n==='a:'){ s='d'; } else if((m=n.match(SEC_O))){ s='o'; }
     const mr=n.match(/(?:recibiste|te transfirio|te envio|te pago|te pagaron)\b.*?\bde\s+(.+)$/); if(mr){ const v=l.slice(l.length-mr[1].length).trim(); if(nomOk(v)&&!d.origen.nombre) d.origen.nombre=v; }
     if(s){ sec=s; const P=s==='o'?d.origen:d.destino; const rest=m?desde(i,m[0].length):''; const r=rest.replace(/^(?:la cuenta|cuenta)\b\s*:?\s*/i,'');
@@ -183,7 +192,11 @@ async function procesarComprobante(file){
 function autocompletar(d){ const f=$('#frm'); const h=[]; const set=(n,v,t)=>{ if(v!=null&&v!==''&&f.elements[n]){ f.elements[n].value=v; h.push(t); } };
   set('monto',d.monto!=null?fnum(d.monto):null,'monto'); set('fecha',d.fecha,'fecha'); set('operacion',d.operacion,'N° de operación'); set('medio',d.medio,'medio');
   if(d.concepto&&f.elements.nota&&!f.elements.nota.value) set('nota',d.concepto,'nota');
-  if(!CB.fijo){ CB.sugerido=sugerirCliente(d); if(CB.sugerido) set('cliente',CB.sugerido.c.id,'cliente'); } return h; }
+  if(!CB.fijo){ CB.sugerido=sugerirCliente(d); const sel=f.elements.cliente; const viejo=sel.querySelector('option[value="__nuevo"]'); if(viejo) viejo.remove();
+    if(CB.sugerido) set('cliente',CB.sugerido.c.id,'cliente');
+    else if(d.nombre){ // no es cliente todavía: se anota como cliente nuevo con los datos del comprobante
+      const o=document.createElement('option'); o.value='__nuevo'; o.textContent='+ Cliente nuevo: '+d.nombre+(d.origen.cuit?' · CUIT '+cuitTxt(d.origen.cuit):''); sel.insertBefore(o,sel.options[1]||null); sel.value='__nuevo'; h.push('cliente nuevo'); } }
+  return h; }
 
 // pegar una captura (Ctrl+V) mientras está abierto el cobro
 document.addEventListener('paste',e=>{ if(!$('#compz')||!CB) return; const it=[...(e.clipboardData&&e.clipboardData.items||[])].find(x=>x.kind==='file'&&/^image\//.test(x.type)); if(!it) return;
@@ -191,30 +204,35 @@ document.addEventListener('paste',e=>{ if(!$('#compz')||!CB) return; const it=[.
 LIVE['cobro-chk']=()=>pintarChequeos();
 function dupDe(op,hash){ const o=String(op||'').trim().toLowerCase(); return {op:o?S.cobros.find(x=>x.operacion&&x.operacion.toLowerCase()===o):null,hash:hash?S.cobros.find(x=>x.hash===hash):null}; }
 function pintarChequeos(){ const box=$('#compchk'),f=$('#frm'); if(!box||!f||!CB) return; const L=[]; const g=n=>f.elements[n]?f.elements[n].value.trim():'';
-  const cid=CB.fijo||+g('cliente')||null, monto=num(g('monto')), fecha=g('fecha'), d=CB.datos, dup=dupDe(g('operacion'),CB.hash); let nuevo='';
+  const esNuevo=!CB.fijo&&g('cliente')==='__nuevo';
+  const cid=CB.fijo||(esNuevo?null:+g('cliente'))||null, monto=num(g('monto')), fecha=g('fecha'), d=CB.datos, dup=dupDe(g('operacion'),CB.hash);
   if(dup.op) L.push(['bad','Ese N° de operación ya está cargado: cobro del '+fechaTxt(dup.op.fecha)+' a '+cliNom(dup.op.clienteId)+' por '+money2(dup.op.monto)+'.']);
   if(dup.hash&&dup.hash!==dup.op) L.push(['bad','Este mismo archivo ya se subió en el cobro del '+fechaTxt(dup.hash.fecha)+' a '+cliNom(dup.hash.clienteId)+'.']);
   if(d){ if(d.monto==null) L.push(['warn','No encontré el monto en el comprobante.']); if(!d.fecha) L.push(['warn','No encontré la fecha en el comprobante.']);
     const quien=d.nombre||(d.cuits[0]?'CUIT '+cuitTxt(d.cuits[0]):'');
     if(CB.fijo){ const c=IDX.cli[CB.fijo]; if(quien){ const por=coincide(c,d); L.push(por?['good','El pago es de '+c.nombre+' (coincide por '+por+').']:['warn','El comprobante parece de «'+quien+'», no de '+c.nombre+'. Revisá que sea el cliente correcto.']); } }
-    else if(CB.sugerido) L.push(['good',CB.sugerido.por==='nuevo'?'Cliente nuevo creado: '+CB.sugerido.c.nombre+'.':'Reconocí al cliente por '+CB.sugerido.por+': '+CB.sugerido.c.nombre+'.']);
-    else if(quien){ L.push(['warn','«'+quien+'» no está en tus clientes. Elegilo de la lista o crealo con los datos del comprobante.']);
-      if(d.nombre) nuevo=`<button class="btn sm pri" type="button" data-act="cobro-nuevo-cli">Crear cliente «${esc(d.nombre)}»${d.origen.cuit?' · CUIT '+esc(cuitTxt(d.origen.cuit)):''}</button>`; } }
+    else if(esNuevo) L.push(['info','Al guardar se anota a '+d.nombre+' como cliente nuevo'+(d.origen.cuit?' con CUIT '+cuitTxt(d.origen.cuit):'')+'. Si ya era cliente con otro nombre, elegilo en la lista.']);
+    else if(CB.sugerido&&String(CB.sugerido.c.id)===g('cliente')) L.push(['good','Reconocí al cliente por '+CB.sugerido.por+': '+CB.sugerido.c.nombre+'.']);
+    else if(quien&&!d.nombre) L.push(['info','El comprobante no trae el nombre de quien pagó (CUIT '+cuitTxt(d.cuits[0])+'). Elegí el cliente en la lista.']); }
+  if(esNuevo&&monto>0) L.push(['info','Como es cliente nuevo y no tiene deuda, el pago queda como saldo a favor.']);
   if(cid&&monto!=null&&monto>0){ const s=saldoCliente(cid);
     if(monto>s+0.005) L.push(['warn',s>0.004?'Paga '+money2(r2(monto-s))+' más de lo que debe: le queda saldo a favor.':cliNom(cid)+' no tiene deuda: el pago queda como saldo a favor.']);
     else L.push(Math.abs(monto-s)<0.005?['good','Cancela todo el saldo de '+cliNom(cid)+'.']:['info','Después de este cobro, '+cliNom(cid)+' queda debiendo '+money2(r2(s-monto))+'.']); }
   if(fecha){ if(fecha>hoy()) L.push(['warn','La fecha es posterior a hoy.']); else if(difDias(hoy(),fecha)>60) L.push(['warn','El comprobante tiene más de 60 días.']); }
-  box.innerHTML=L.map(([k,t])=>`<div class="${k}">${esc(t)}</div>`).join('')+(nuevo?`<div class="chkbar">${nuevo}</div>`:''); }
+  box.innerHTML=L.map(([k,t])=>`<div class="${k}">${esc(t)}</div>`).join(''); }
 
-ACT['cobro-nuevo-cli']=()=>{ const d=CB&&CB.datos, f=$('#frm'); if(!d||!d.nombre||!f||!f.elements.cliente) return;
-  const ya=d.origen.cuit&&S.clientes.find(c=>String(c.cuit||'').replace(/\D/g,'')===d.origen.cuit); if(ya){ CB.sugerido={c:ya,por:'CUIT'}; f.elements.cliente.value=ya.id; pintarChequeos(); return; }
-  const c={id:sig('Q'),nombre:d.nombre,telefono:'',cuit:d.origen.cuit?cuitTxt(d.origen.cuit):'',direccion:'',notas:'Creado desde un comprobante'+(d.origen.banco?' · '+d.origen.banco:''),creado:hoy()};
-  S.clientes.push(c); indexar(); guardar(); f.elements.cliente.innerHTML=opts(optsClientes(),c.id); f.elements.cliente.value=c.id; CB.sugerido={c,por:'nuevo'}; pintarChequeos(); toast('Cliente creado: '+c.nombre); };
+// cliente nuevo con los datos de quien pagó (si ya hay uno con ese CUIT, se usa ese)
+function clienteDesdeComprobante(d){ const ya=d.origen.cuit&&S.clientes.find(c=>String(c.cuit||'').replace(/\D/g,'')===d.origen.cuit); if(ya) return ya;
+  const P=d.origen, notas=['Creado desde un comprobante',P.banco,P.cvu?'CVU '+P.cvu:P.cbu?'CBU '+P.cbu:'',P.alias?'Alias '+P.alias:''].filter(Boolean).join(' · ');
+  const c={id:sig('Q'),nombre:d.nombre,telefono:'',cuit:P.cuit?cuitTxt(P.cuit):'',direccion:'',notas,creado:hoy()}; S.clientes.push(c); indexar(); return c; }
 
-function guardarCobro(d){ const cid=CB.fijo||+d.cliente; if(!cid) throw new Error('Elegí el cliente.');
+function guardarCobro(d){
   const op=(d.operacion||'').trim(), dup=dupDe(op,CB.hash);
   if(dup.op) throw new Error('Ese N° de operación ya está cargado (cobro del '+fechaTxt(dup.op.fecha)+'). Si es otro pago, revisá el número.');
   if(dup.hash) throw new Error('Este comprobante ya se cargó en el cobro del '+fechaTxt(dup.hash.fecha)+' a '+cliNom(dup.hash.clienteId)+'.');
+  let cid=CB.fijo||(d.cliente==='__nuevo'?0:+d.cliente);
+  if(!CB.fijo&&d.cliente==='__nuevo'){ if(!CB.datos||!CB.datos.nombre) throw new Error('Elegí el cliente.'); cid=clienteDesdeComprobante(CB.datos).id; }
+  if(!cid) throw new Error('Elegí el cliente.');
   const cobro={fecha:d.fecha||hoy(),clienteId:cid,monto:d.monto,medio:d.medio,nota:d.nota}; if(op) cobro.operacion=op;
   const datos=CB.datos, desdeFicha=!!CB.fijo, hash=CB.hash;
   const fin=adj=>{ cobro.id=sig('Z'); if(adj){ cobro.comprobante=adj; if(hash) cobro.hash=hash; } if(datos) cobro.datosComp=datos; S.cobros.push(cobro);
