@@ -231,6 +231,25 @@ function fichaCliente(id){ const c=IDX.cli[id]; if(!c) return; if(UI.cc.id!==id)
   <h2 style="font-size:20px;margin-top:18px">Últimas compras (todos los medios)</h2>${vs.length?`<div class="tw"><table><tbody>${vs.map(v=>`<tr class="click ${v.estado==='Anulada'?'off':''}" data-act="venta-ver" data-id="${v.id}"><td>${fechaCorta(v.fecha)}</td><td>#${v.id}</td><td>${esc(v.medio)}</td><td class="n">${money(v.total)}</td></tr>`).join('')}</tbody></table></div>`:vacioHtml('Sin compras.')}`,
   {wide:true,noFocus:true,foot:`<button class="btn" data-act="cli-edit" data-id="${id}">Editar</button><button class="btn pri" data-act="cli-cobro" data-id="${id}">Registrar cobro</button><button class="btn" data-act="cerrar">Cerrar</button>`}); }
 ACT['cli-ver']=el=>fichaCliente(+el.dataset.id);
+/* Ventas › Cuenta corriente: lista de clientes con su saldo y la planilla del elegido al lado */
+const enCCVentas=()=>UI.vista==='ventas'&&UI.ventasTab==='cc';
+function volverCC(id){ if(enCCVentas()){ cerrar(); UI.cc.id=id; indexar(); FILL.ventas(); } else fichaCliente(id); }
+function ccVentasHtml(){ const f=UI.f.ccv, q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const filas=S.clientes.map(c=>{ const L=movsCC(c.id); return {c,s:saldoCliente(c.id),n:L.length,ult:L.length?L[L.length-1].fecha:null}; })
+    .filter(x=>(f.ver==='todos'||(f.ver==='saldo'?Math.abs(x.s)>0.004:x.n>0))&&(!q||x.c.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||(x.c.telefono||'').includes(q)||String(x.c.cuit||'').replace(/\D/g,'').includes(q.replace(/\D/g,'')||'§')))
+    .sort((a,b)=>b.s-a.s||a.c.nombre.localeCompare(b.c.nombre));
+  const total=r2(S.clientes.reduce((a,c)=>a+Math.max(0,saldoCliente(c.id)),0));
+  if(!filas.some(x=>x.c.id===UI.cc.id)) UI.cc={id:filas.length?filas[0].c.id:null,per:'0'};
+  const lista=filas.length?`<div class="tw"><table><thead><tr><th>Cliente</th><th class="n">Saldo</th></tr></thead><tbody>${filas.map(x=>`<tr class="click ${x.c.id===UI.cc.id?'sel':''}" data-act="ccv-sel" data-id="${x.c.id}"><td><b>${esc(x.c.nombre)}</b><div class="sm muted">${x.c.cierre?'Cierra el '+x.c.cierre:'Cierra fin de mes'}${x.ult?' · últ. mov. '+fechaCorta(x.ult):''}</div></td><td class="n b ${x.s>0.004?'dn':x.s<-0.004?'up':''}">${x.s<-0.004?'a favor '+money(-x.s):money(x.s)}</td></tr>`).join('')}</tbody></table></div>`
+    :vacioHtml(f.ver==='saldo'?'Ningún cliente debe plata. Elegí «Todos los clientes» para ver el resto.':'No hay clientes con esa búsqueda.');
+  const c=UI.cc.id?IDX.cli[UI.cc.id]:null, s=c?saldoCliente(c.id):0;
+  const det=c?`<div class="card"><div class="cchead"><div><h2 style="font-size:20px;margin:0">${esc(c.nombre)}</h2><div class="sm muted">${esc(c.telefono||'Sin teléfono')}${c.cuit?' · CUIT '+esc(c.cuit):''} · ${s<-0.004?'<b class="up">Saldo a favor '+money2(-s)+'</b>':'Debe <b class="'+(s>0.004?'dn':'')+'">'+money2(s)+'</b>'}</div></div>
+      <div class="bar"><select data-chg="cc-per" aria-label="Período">${opts(opcionesPer(c),UI.cc.per)}</select></div></div>
+    <div class="bar" style="margin-bottom:10px;flex-wrap:wrap;gap:8px"><button class="btn sm pri" data-act="cli-cobro" data-id="${c.id}">Registrar cobro</button><button class="btn sm" data-act="cc-aj" data-id="${c.id}">Cargo o descuento</button><button class="btn sm" data-act="cc-csv" data-id="${c.id}">Exportar a Excel</button><button class="btn sm ghost" data-act="cli-ver" data-id="${c.id}">Ver ficha</button></div>
+    <div id="ccbox">${planillaCC(c,UI.cc.per)}</div></div>`:'';
+  return `<div class="kpis" style="margin-bottom:12px"><div class="kpi ${total>0?'bad':'good'}"><div class="k">Total a cobrar en cuenta corriente</div><div class="v">${money(total)}</div></div><div class="kpi"><div class="k">Clientes que deben</div><div class="v">${S.clientes.filter(x=>saldoCliente(x.id)>0.004).length}</div></div></div>
+    <div class="ccv"><div>${lista}</div><div>${det}</div></div>`; }
+ACT['ccv-sel']=el=>{ const id=+el.dataset.id; if(UI.cc.id!==id) UI.cc={id,per:'0'}; FILL.ventas(); };
 CHG['cc-per']=el=>{ UI.cc.per=el.value; const c=IDX.cli[UI.cc.id]; const b=$('#ccbox'); if(c&&b) b.innerHTML=planillaCC(c,el.value); };
 ACT['cc-csv']=el=>{ const c=IDX.cli[+el.dataset.id]; const per=UI.cc.per, r=rangoPer(c,per), R=resumenCC(c.id,r.desde,r.hasta); const f=n=>String(n).replace('.',',');
   const rows=(per==='todo'?[]:[[addDias(r.desde,-1),'Saldo anterior','','',f(R.anterior)]]).concat(R.L.map(m=>[m.fecha,m.concepto,m.debe?f(m.debe):'',m.haber?f(m.haber):'',f(m.saldo)]));
@@ -239,8 +258,8 @@ ACT['cc-csv']=el=>{ const c=IDX.cli[+el.dataset.id]; const per=UI.cc.per, r=rang
 ACT['cc-aj']=el=>{ const id=+el.dataset.id, c=IDX.cli[id];
   formModal('Cargo o descuento · '+c.nombre,[{n:'tipo',l:'Tipo',t:'select',full:true,o:[{v:'Cargo',t:'Cargo: suma a la deuda (saldo inicial, flete, etc.)'},{v:'Abono',t:'Descuento o nota de crédito: resta de la deuda'}]},{n:'monto',l:'Monto ($)',t:'num',req:true,min:0.01},{n:'fecha',l:'Fecha',t:'date'},{n:'concepto',l:'Concepto',t:'text',req:true,full:true,ph:'Ej. Saldo inicial, Bonificación, Devolución'}],{tipo:'Cargo',fecha:hoy()},d=>{
     if(d.tipo==='Abono'&&d.monto>saldoCliente(id)+0.005) throw new Error('El descuento supera el saldo ('+money2(saldoCliente(id))+').');
-    S.ajustesCC.push({id:sig('J'),clienteId:id,tipo:d.tipo,monto:d.monto,fecha:d.fecha||hoy(),concepto:d.concepto}); guardar(); refrescar(); fichaCliente(id); toast('Movimiento agregado'); },{foot:`<button class="btn" type="button" data-act="cli-ver" data-id="${id}">Volver</button><span style="flex:1"></span>`}); };
-ACT['cc-aj-del']=el=>{ const id=+el.dataset.id, cid=+el.dataset.cli; confirmar('¿Borrar este movimiento de la cuenta corriente?',()=>{ S.ajustesCC=S.ajustesCC.filter(a=>a.id!==id); guardar(); refrescar(); fichaCliente(cid); toast('Movimiento borrado'); },'Borrar'); };
+    S.ajustesCC.push({id:sig('J'),clienteId:id,tipo:d.tipo,monto:d.monto,fecha:d.fecha||hoy(),concepto:d.concepto}); guardar(); refrescar(); volverCC(id); toast('Movimiento agregado'); },{foot:enCCVentas()?'':`<button class="btn" type="button" data-act="cli-ver" data-id="${id}">Volver</button><span style="flex:1"></span>`}); };
+ACT['cc-aj-del']=el=>{ const id=+el.dataset.id, cid=+el.dataset.cli; confirmar('¿Borrar este movimiento de la cuenta corriente?',()=>{ S.ajustesCC=S.ajustesCC.filter(a=>a.id!==id); guardar(); refrescar(); volverCC(cid); toast('Movimiento borrado'); },'Borrar'); };
 ACT['cli-cobro']=el=>modalCobro(+el.dataset.id); // en comprobantes.js: cobro con comprobante adjunto y lectura automática
 
 /* ================= GASTOS ================= */

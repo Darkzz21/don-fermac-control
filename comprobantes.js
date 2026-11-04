@@ -237,7 +237,8 @@ function guardarCobro(d){
   const datos=CB.datos, desdeFicha=!!CB.fijo, hash=CB.hash;
   const fin=adj=>{ cobro.id=sig('Z'); if(adj){ cobro.comprobante=adj; if(hash) cobro.hash=hash; } if(datos) cobro.datosComp=datos; S.cobros.push(cobro);
     const c=IDX.cli[cid]; if(c&&!c.cuit&&datos&&datos.origen.cuit&&coincide(c,datos)&&!S.clientes.some(x=>String(x.cuit||'').replace(/\D/g,'')===datos.origen.cuit)) c.cuit=cuitTxt(datos.origen.cuit); // aprende el CUIT del cliente
-    guardar(); cerrar(); refrescar(); if(desdeFicha&&typeof fichaCliente==='function') fichaCliente(cid); toast(adj?'Cobro registrado con comprobante':'Cobro registrado'); };
+    guardar(); cerrar(); if(typeof enCCVentas==='function'&&enCCVentas()) UI.cc={id:cid,per:UI.cc.id===cid?UI.cc.per:'0'}; refrescar();
+    if(desdeFicha&&typeof volverCC==='function') volverCC(cid); toast(adj?'Cobro registrado con comprobante':'Cobro registrado'); };
   if(!CB.file) return fin(null);
   const b=$('#okb'), file=CB.file; b.disabled=true; b.textContent='Guardando…';
   adjGuardar(file).then(id=>fin({id,nombre:file.name,tipo:file.type})).catch(e=>{ b.disabled=false; b.textContent='Guardar'; const er=$('#err'); if(er) er.textContent='No se pudo guardar el archivo: '+(e&&e.message||e)+'.'; }); }

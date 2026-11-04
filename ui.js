@@ -1,8 +1,8 @@
 /* Interfaz: ayudantes, modales, navegación, Panel, Ventas (punto de venta) y Caja. */
 'use strict';
 const UI={vista:'panel',ventasTab:'vender',invTab:null,compTab:'lista',provTab:'prov',
-  f:{prod:{q:'',cat:'',prov:'',ver:'',est:'activos'},hist:{q:'',desde:'',hasta:''},mov:{q:'',tipo:'',desde:''},comp:{q:'',desde:''},cli:{q:''},gas:{q:'',desde:''},pos:{q:'',cat:''},pre:{q:'',ver:''}},
-  caja:{fecha:null},rep:{per:'mes',desde:'',hasta:''},cart:{items:[],clienteId:'',medio:'Efectivo',recibido:'',descPct:''}};
+  f:{prod:{q:'',cat:'',prov:'',ver:'',est:'activos'},hist:{q:'',desde:'',hasta:''},mov:{q:'',tipo:'',desde:''},comp:{q:'',desde:''},cli:{q:''},gas:{q:'',desde:''},pos:{q:'',cat:''},pre:{q:'',ver:''},ccv:{q:'',ver:'saldo'}},
+  caja:{fecha:null},rep:{per:'mes',desde:'',hasta:''},cc:{id:null,per:'0'},cart:{items:[],clienteId:'',medio:'Efectivo',recibido:'',descPct:''}};
 const ACT={},FILL={},LIVE={},CHG={},VIEWS={},AFTER={}; let _raf=0;
 const gp=p=>p.split('.').reduce((o,k)=>o[k],UI);
 const sp=(p,v)=>{const a=p.split('.'),k=a.pop();a.reduce((o,x)=>o[x],UI)[k]=v;};
@@ -132,7 +132,11 @@ VIEWS.panel=function(){
 /* ================= VENTAS ================= */
 const POSCATS=()=>cats();
 VIEWS.ventas=function(){
-  const t=tabs([['vender','Vender'],['historial','Historial de ventas']],UI.ventasTab,'tab-ventas');
+  const t=tabs([['vender','Vender'],['historial','Historial de ventas'],['cc','Cuenta corriente']],UI.ventasTab,'tab-ventas');
+  if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas','Cuenta corriente de cada cliente: lo que compró, lo que pagó y cuánto debe, como una planilla')}${t}
+    <div class="filters"><label class="field">Buscar cliente<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Nombre, teléfono o CUIT"></label>
+    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label>
+    <div class="bar" style="align-self:flex-end"><button class="btn" data-act="cobro-comp">Cargar comprobante de pago</button></div></div><div id="res"></div>`; }
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas','Historial y anulaciones')}${t}
     <div class="filters"><label class="field">Buscar<input data-bind="f.hist.q" value="${esc(f.q)}" placeholder="N°, cliente o medio de pago"></label><label class="field">Desde<input type="date" data-bind="f.hist.desde" value="${esc(f.desde)}"></label><label class="field">Hasta<input type="date" data-bind="f.hist.hasta" value="${esc(f.hasta)}"></label></div><div id="res"></div>`; }
   const f=UI.f.pos;
@@ -146,6 +150,7 @@ ACT['pos-cat']=el=>{ UI.f.pos.cat=el.dataset.c; render(); };
 function posLista(){ const f=UI.f.pos; const q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   return S.productos.filter(p=>p.activo&&(!f.cat||p.categoria===f.cat)&&(!q||p.nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||p.codigo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||(p.barras&&p.barras.includes(q))||(p.plu&&String(p.plu)===q))); }
 FILL.ventas=function(){ const r=$('#res'); if(!r) return;
+  if(UI.ventasTab==='cc'){ r.innerHTML=ccVentasHtml(); return; }
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; const q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
     const l=S.ventas.filter(v=>(!f.desde||v.fecha>=f.desde)&&(!f.hasta||v.fecha<=f.hasta)&&(!q||('#'+v.id).includes(q)||String(v.id)===q||cliNom(v.clienteId).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||v.medio.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q))).sort((a,b)=>b.id-a.id).slice(0,300);
     r.innerHTML=l.length?`<div class="tw"><table><thead><tr><th>N°</th><th>Fecha</th><th>Cliente</th><th class="n">Ítems</th><th>Pago</th><th class="n">Total</th><th>Estado</th></tr></thead><tbody>${l.map(v=>`<tr class="click ${v.estado==='Anulada'?'off':''}" data-act="venta-ver" data-id="${v.id}"><td>#${v.id}</td><td>${fechaTxt(v.fecha)} ${v.hora||''}</td><td>${esc(cliNom(v.clienteId))}</td><td class="n">${v.items.length}</td><td>${esc(v.medio)}</td><td class="n b">${money(v.total)}</td><td>${v.estado==='Anulada'?pill('bad','Anulada'):pill('good','Registrada')}</td></tr>`).join('')}</tbody></table></div>`:vacioHtml('No hay ventas con esos filtros.'); return; }
