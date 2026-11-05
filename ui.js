@@ -133,10 +133,9 @@ VIEWS.panel=function(){
 const POSCATS=()=>cats();
 VIEWS.ventas=function(){
   const t=tabs([['vender','Vender'],['historial','Historial de ventas'],['cc','Cuenta corriente']],UI.ventasTab,'tab-ventas');
-  if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas','Cuenta corriente de cada cliente: lo que compró, lo que pagó y cuánto debe, como una planilla')}${t}
+  if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas')}<div class="tabbar">${t}<button class="btn sm tabact" data-act="cobro-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar comprobante de pago</button></div>
     <div class="filters"><label class="field">Buscar cliente<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Nombre, teléfono o CUIT"></label>
-    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label>
-    <div class="bar" style="align-self:flex-end"><button class="btn" data-act="cobro-comp">Cargar comprobante de pago</button></div></div><div id="res"></div>`; }
+    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label></div><div id="res"></div>`; }
   const bComp=`<button class="btn sm tabact" data-act="venta-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar venta con comprobante</button>`;
   const tb=`<div class="tabbar">${t}${bComp}</div>`;
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas')}${tb}
