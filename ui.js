@@ -211,7 +211,6 @@ function quitarCart(pid){ const i=UI.cart.items.findIndex(x=>x.productoId===pid)
   if(prod(pid).unidad==='kg'||it.cant<=1) UI.cart.items.splice(i,1); else it.cant=r3(it.cant-1); renderCart(); }
 document.addEventListener('contextmenu',e=>{ const t=e.target.closest('.tiles .tile'); if(!t) return; e.preventDefault(); quitarCart(+t.dataset.id); });
 function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const t=totalesVenta(C.items,num(C.descPct)||0); const n=C.items.length;
-  const vuelto=C.medio==='Efectivo'&&num(C.recibido)>=t.total&&t.total>0?r2(num(C.recibido)-t.total):null;
   c.innerHTML=`<div class="chead"><h2>Venta <span class="vnum">#${(S.seq.V||0)+1}</span>${n?`<span class="cnt">${n}</span>`:''}</h2>${n?'<button class="btn sm ghost vac" data-act="cart-clear">Vaciar</button>':''}</div>
   ${n?`<div class="clist">${C.items.map(lineaCart).join('')}</div>`:`<div class="empty cvac">${CARTI}Sin productos</div>`}
   <div class="frm" style="margin-top:10px"><label class="field">Cliente<select data-chg="cart-cli"><option value="">Consumidor final</option>${S.clientes.map(x=>`<option value="${x.id}" ${sel(C.clienteId,x.id)}>${esc(x.nombre)}</option>`).join('')}</select></label>
@@ -223,11 +222,18 @@ function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const
   ${C.medio==='Efectivo'&&n?`<label class="field" style="margin-top:4px">Recibido en efectivo<input data-live="cart-rec" value="${esc(C.recibido)}" inputmode="decimal" placeholder="Opcional, para calcular el vuelto"></label>`:''}
   ${t.desc>0?`<div class="sm muted" style="display:flex;justify-content:space-between;margin-top:8px"><span>Subtotal</span><span>${moneyA(t.sub)}</span></div><div class="sm muted" style="display:flex;justify-content:space-between"><span>Descuento</span><span>− ${moneyA(t.desc)}</span></div>`:''}
   <div class="total"><span>Total</span><span>${moneyA(t.total)}</span></div>
-  <div id="vuelto" class="vlt">${vuelto!=null?vueltoHtml(vuelto):''}</div>
+  <div id="vuelto">${C.medio==='Efectivo'&&String(C.recibido||'').trim()?vueltoHtml(num(C.recibido),t.total):''}</div>
   <button class="btn pri" style="width:100%;justify-content:center;margin-top:10px;padding:12px;font-size:16px" data-act="cobrar" ${n?'':'disabled'}>Cobrar ${n?moneyA(t.total):''}</button>`; marcarTiles();
   if(C.editP!=null){ const e=c.querySelector('.cq'); if(e){ e.focus(); e.select(); } } }
-const vueltoHtml=v=>`<span>Vuelto</span><b>${moneyA(v)}</b>`;
-LIVE['cart-rec']=el=>{ UI.cart.recibido=el.value; const t=totalesVenta(UI.cart.items,num(UI.cart.descPct)||0); const r=num(el.value); const v=$('#vuelto'); if(v) v.innerHTML=r!=null&&r>=t.total&&t.total>0?vueltoHtml(r2(r-t.total)):''; };
+// muestra el vuelto, lo que falta o un aviso si el monto parece mal escrito
+function vueltoHtml(rec,total){ if(rec==null||!(total>0)) return '';
+  if(rec<total) return `<div class="vlt falta"><span>Falta</span><b>${moneyA(r2(total-rec))}</b></div>`;
+  return `<div class="vlt"><span>Vuelto</span><b>${moneyA(r2(rec-total))}</b></div>${rec>=total*5&&rec-total>=10000?`<div class="vlt-av">Revisá el monto recibido: es ${fmt(rec/total,0)} veces el total.</div>`:''}`; }
+// escribe el monto con puntos de miles mientras se tipea (ej. 1.000.000) sin mover el cursor
+function miles(el){ const v=el.value, pos=el.selectionStart||v.length; const antes=v.slice(0,pos).replace(/[^\d,]/g,'').length;
+  let [ent,dec]=v.replace(/[^\d,]/g,'').split(','); ent=(ent||'').replace(/^0+(?=\d)/,''); const f=ent.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(dec!==undefined?','+dec.slice(0,2):'');
+  el.value=f; let n=0,i=0; while(i<f.length&&n<antes){ if(/[\d,]/.test(f[i])) n++; i++; } el.setSelectionRange(i,i); }
+LIVE['cart-rec']=el=>{ miles(el); UI.cart.recibido=el.value; const t=totalesVenta(UI.cart.items,num(UI.cart.descPct)||0); const v=$('#vuelto'); if(v) v.innerHTML=el.value.trim()?vueltoHtml(num(el.value),t.total):''; };
 CHG['cart-qty']=el=>{ const i=+el.dataset.i,it=UI.cart.items[i]; const v=num(el.value); const p=prod(it.productoId);
   if(v==null||v<=0){ UI.cart.items.splice(i,1); } else if(v>stockDe(p.id)+1e-9){ toast('Stock insuficiente: hay '+qtyTxt(p,stockDe(p.id))+'.',true); } else it.cant=p.unidad==='kg'?r3(v):Math.round(v); renderCart(); };
 CHG['cart-price']=el=>{ const v=num(el.value); if(v==null||v<0){ toast('Precio inválido.',true); } else UI.cart.items[+el.dataset.i].precio=v; UI.cart.editP=null; renderCart(); };
