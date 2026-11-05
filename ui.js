@@ -134,8 +134,11 @@ const POSCATS=()=>cats();
 VIEWS.ventas=function(){
   const t=tabs([['vender','Vender'],['historial','Historial de ventas'],['cc','Cuenta corriente']],UI.ventasTab,'tab-ventas');
   if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas')}<div class="tabbar">${t}<button class="btn sm tabact" data-act="cobro-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar comprobante de pago</button></div>
-    <div class="filters"><label class="field">Buscar cliente<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Nombre, teléfono o CUIT"></label>
-    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label></div><div id="res"></div>`; }
+    <div id="ccstrip"></div>
+    <div class="ccv"><div class="card ccside"><h2>Clientes</h2>
+      <span class="srch">${SVG('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>')}<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Buscar por nombre, teléfono o CUIT" aria-label="Buscar cliente"></span>
+      <div class="seg" role="group" aria-label="Qué clientes ver">${[['saldo','Con saldo'],['mov','Con movimientos'],['todos','Todos']].map(([v,t])=>`<button class="${f.ver===v?'on':''}" data-act="ccv-ver" data-v="${v}">${t}</button>`).join('')}</div>
+      <div id="res"></div></div><div id="ccdet"></div></div>`; }
   const bComp=`<button class="btn sm tabact" data-act="venta-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar venta con comprobante</button>`;
   const tb=`<div class="tabbar">${t}${bComp}</div>`;
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas')}${tb}
@@ -146,6 +149,7 @@ VIEWS.ventas=function(){
    <div class="chips"><button class="chip ${f.cat===''?'on':''}" data-act="pos-cat" data-c="">Todos</button>${POSCATS().map(c=>`<button class="chip ${f.cat===c?'on':''}" data-act="pos-cat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div><div id="res"></div></div>
    <div class="card cart" id="cart"></div></div>`;
 };
+ACT['ccv-ver']=el=>{ UI.f.ccv.ver=el.dataset.v; document.querySelectorAll('.seg [data-act="ccv-ver"]').forEach(b=>b.classList.toggle('on',b===el)); FILL.ventas(); };
 ACT['tab-ventas']=el=>{ UI.ventasTab=el.dataset.t; render(); };
 ACT['pos-cat']=el=>{ UI.f.pos.cat=el.dataset.c; render(); };
 function posLista(){ const f=UI.f.pos; const q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
