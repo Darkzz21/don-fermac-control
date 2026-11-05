@@ -26,6 +26,8 @@ const fechaCorta=f=>f?f.slice(8,10)+'/'+f.slice(5,7):'';
 const fmt=(n,d=2)=>Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const money=n=>(S?S.config.moneda:'$')+' '+fmt(n,0);
 const money2=n=>(S?S.config.moneda:'$')+' '+fmt(n,2);
+// muestra centavos solo cuando el monto los tiene (ej. $ 5.075 o $ 5.075,50)
+const moneyA=n=>Math.abs(n-Math.round(n))<0.005?money(n):money2(n);
 const num=(s)=>{ if(typeof s==='number') return s; let t=String(s==null?'':s).trim().replace(/[$\s]/g,''); if(!t) return null;
   if(t.includes(',')) t=t.replace(/\./g,'').replace(',','.'); else if(/^-?\d{1,3}(\.\d{3})+$/.test(t)) t=t.replace(/\./g,'');
   const v=parseFloat(t); return isNaN(v)?null:v; };

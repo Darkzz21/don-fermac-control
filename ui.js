@@ -137,12 +137,13 @@ VIEWS.ventas=function(){
     <div class="filters"><label class="field">Buscar cliente<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Nombre, teléfono o CUIT"></label>
     <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label>
     <div class="bar" style="align-self:flex-end"><button class="btn" data-act="cobro-comp">Cargar comprobante de pago</button></div></div><div id="res"></div>`; }
-  const bComp=`<button class="btn" data-act="venta-comp">Cargar venta con comprobante</button>`;
-  if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas','Historial y anulaciones',bComp)}${t}
+  const bComp=`<button class="btn sm tabact" data-act="venta-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar venta con comprobante</button>`;
+  const tb=`<div class="tabbar">${t}${bComp}</div>`;
+  if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas','Historial y anulaciones')}${tb}
     <div class="filters"><label class="field">Buscar<input data-bind="f.hist.q" value="${esc(f.q)}" placeholder="N°, cliente o medio de pago"></label><label class="field">Desde<input type="date" data-bind="f.hist.desde" value="${esc(f.desde)}"></label><label class="field">Hasta<input type="date" data-bind="f.hist.hasta" value="${esc(f.hasta)}"></label></div><div id="res"></div>`; }
   const f=UI.f.pos;
-  return `${encab('Ventas','Buscá por nombre, código o escaneá el código de barras y apretá Enter. ¿Te pagaron por transferencia? Subí el comprobante.',bComp)}${t}
-  <div class="pos"><div class="grid" style="gap:10px"><label class="field">Buscar producto<input id="posq" data-bind="f.pos.q" data-key="pos-enter" value="${esc(f.q)}" placeholder="Nombre, código o código de barras" autocomplete="off"></label>
+  return `${encab('Ventas')}${tb}
+  <div class="pos"><div class="grid" style="gap:10px"><label class="field">Buscar producto<span class="srch"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M16 8v8"/></svg><input id="posq" data-bind="f.pos.q" data-key="pos-enter" value="${esc(f.q)}" placeholder="Buscá por nombre o código, o escaneá el código de barras" autocomplete="off"><kbd>Enter</kbd></span></label>
    <div class="chips"><button class="chip ${f.cat===''?'on':''}" data-act="pos-cat" data-c="">Todos</button>${POSCATS().map(c=>`<button class="chip ${f.cat===c?'on':''}" data-act="pos-cat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div><div id="res"></div></div>
    <div class="card cart" id="cart"></div></div>`;
 };
@@ -182,7 +183,7 @@ ACT['peso-enter']=el=>ACT['peso-ok']({dataset:{id:el.dataset.id,g:''}});
 ACT['peso-ok']=function(el){ let g=el.dataset.g; if(g==='') { const v=num($('#peso').value); if(!v||v<=0){ toast('Ingresá el peso en gramos.',true); return; } g=v; } cerrar(); addCart(+el.dataset.id,r3(+g/1000)); };
 function lineaCart(it,i){ const p=prod(it.productoId); const kg=p.unidad==='kg';
   return `<div class="line"><div><b>${esc(p.nombre)}</b><div class="sm muted">${kg?qtyTxt(p,it.cant)+' × ':it.cant+' × '}<input class="cq" style="width:92px;padding:2px 6px" data-chg="cart-price" data-i="${i}" value="${fnum(it.precio)}" inputmode="decimal" aria-label="Precio unitario">${kg?' / kg':''}</div></div>
-   <div style="text-align:right"><b>${money2(it.cant*it.precio)}</b><div class="q" style="justify-content:flex-end;margin-top:3px"><input data-chg="cart-qty" data-i="${i}" value="${fnum(it.cant)}" inputmode="decimal" aria-label="Cantidad${kg?' en kg':''}">${kg?'<span class="sm muted">kg</span>':''}<button class="btn sm ghost" data-act="cart-del" data-i="${i}" aria-label="Quitar">✕</button></div></div></div>`; }
+   <div style="text-align:right"><b>${moneyA(it.cant*it.precio)}</b><div class="q" style="justify-content:flex-end;margin-top:3px"><input data-chg="cart-qty" data-i="${i}" value="${fnum(it.cant)}" inputmode="decimal" aria-label="Cantidad${kg?' en kg':''}">${kg?'<span class="sm muted">kg</span>':''}<button class="btn sm ghost" data-act="cart-del" data-i="${i}" aria-label="Quitar">✕</button></div></div></div>`; }
 function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const t=totalesVenta(C.items,num(C.descPct)||0);
   const vuelto=C.medio==='Efectivo'&&num(C.recibido)>=t.total&&t.total>0?r2(num(C.recibido)-t.total):null;
   c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Venta actual</h2>${C.items.length?'<button class="btn sm ghost" data-act="cart-clear">Vaciar</button>':''}</div>
@@ -191,12 +192,12 @@ function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const
    <label class="field">Descuento %<input data-chg="cart-desc" value="${esc(C.descPct)}" inputmode="decimal" placeholder="0"></label></div>
   <div class="pay" role="group" aria-label="Medio de pago">${MEDIOS.map(m=>`<button class="btn ${C.medio===m?'on':''}" data-act="cart-medio" data-m="${m}">${m==='Cuenta corriente'?'Cta. cte.':m}</button>`).join('')}</div>
   ${C.comp?`<div class="cartcomp"><div class="cc1">${typeof CLIP!=='undefined'?CLIP:''}<b>${esc(C.comp.file?C.comp.file.name:'Comprobante')}</b><button class="btn sm ghost" data-act="cart-comp-del" aria-label="Quitar comprobante">✕</button></div>
-    <div class="cc2"><span>${money2(C.comp.monto)}${C.comp.datos&&C.comp.datos.nombre?' · '+esc(C.comp.datos.nombre):''}</span>${Math.abs(C.comp.monto-t.total)<0.005?pill('good','Coincide con el total'):pill('warn','No coincide: la venta suma '+money2(t.total))}</div></div>`
+    <div class="cc2"><span>${moneyA(C.comp.monto)}${C.comp.datos&&C.comp.datos.nombre?' · '+esc(C.comp.datos.nombre):''}</span>${Math.abs(C.comp.monto-t.total)<0.005?pill('good','Coincide con el total'):pill('warn','No coincide: la venta suma '+moneyA(t.total))}</div></div>`
     :C.items.length?`<button class="btn sm ghost" style="margin-top:8px" data-act="cart-comp">${typeof CLIP!=='undefined'?CLIP:''} Adjuntar comprobante de pago</button>`:''}
-  ${C.medio==='Efectivo'?`<label class="field">Recibido en efectivo<input data-live="cart-rec" value="${esc(C.recibido)}" inputmode="decimal" placeholder="Opcional, para calcular el vuelto"></label><div class="sm" id="vuelto" style="margin-top:4px">${vuelto!=null?'Vuelto: <b>'+money2(vuelto)+'</b>':''}</div>`:''}
-  ${t.desc>0?`<div class="sm muted" style="display:flex;justify-content:space-between;margin-top:8px"><span>Subtotal</span><span>${money2(t.sub)}</span></div><div class="sm muted" style="display:flex;justify-content:space-between"><span>Descuento</span><span>− ${money2(t.desc)}</span></div>`:''}
-  <div class="total"><span>Total</span><span>${money2(t.total)}</span></div>
-  <button class="btn pri" style="width:100%;justify-content:center;margin-top:10px;padding:12px;font-size:16px" data-act="cobrar" ${C.items.length?'':'disabled'}>Cobrar ${C.items.length?money2(t.total):''}</button>`; }
+  ${C.medio==='Efectivo'?`<label class="field">Recibido en efectivo<input data-live="cart-rec" value="${esc(C.recibido)}" inputmode="decimal" placeholder="Opcional, para calcular el vuelto"></label><div class="sm" id="vuelto" style="margin-top:4px">${vuelto!=null?'Vuelto: <b>'+moneyA(vuelto)+'</b>':''}</div>`:''}
+  ${t.desc>0?`<div class="sm muted" style="display:flex;justify-content:space-between;margin-top:8px"><span>Subtotal</span><span>${moneyA(t.sub)}</span></div><div class="sm muted" style="display:flex;justify-content:space-between"><span>Descuento</span><span>− ${moneyA(t.desc)}</span></div>`:''}
+  <div class="total"><span>Total</span><span>${moneyA(t.total)}</span></div>
+  <button class="btn pri" style="width:100%;justify-content:center;margin-top:10px;padding:12px;font-size:16px" data-act="cobrar" ${C.items.length?'':'disabled'}>Cobrar ${C.items.length?moneyA(t.total):''}</button>`; }
 LIVE['cart-rec']=el=>{ UI.cart.recibido=el.value; const t=totalesVenta(UI.cart.items,num(UI.cart.descPct)||0); const r=num(el.value); const v=$('#vuelto'); if(v) v.innerHTML=r!=null&&r>=t.total&&t.total>0?'Vuelto: <b>'+money2(r2(r-t.total))+'</b>':''; };
 CHG['cart-qty']=el=>{ const i=+el.dataset.i,it=UI.cart.items[i]; const v=num(el.value); const p=prod(it.productoId);
   if(v==null||v<=0){ UI.cart.items.splice(i,1); } else if(v>stockDe(p.id)+1e-9){ toast('Stock insuficiente: hay '+qtyTxt(p,stockDe(p.id))+'.',true); } else it.cant=p.unidad==='kg'?r3(v):Math.round(v); renderCart(); };
