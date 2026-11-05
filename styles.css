@@ -306,3 +306,42 @@ input[type="date"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:/
 .calf{display:flex;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
 .calf button{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;padding:4px 6px;border-radius:6px}.calf button:hover{background:var(--soft)}
 .calf button:first-child{color:var(--muted)}
+/* cuenta corriente */
+.ccstrip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);font-size:13.5px;color:var(--muted)}
+.ccstrip b{color:var(--ink);font-size:15px}.ccstrip b.dn{color:var(--bad)}.ccstrip .dot{width:4px;height:4px;border-radius:50%;background:var(--line)}
+.ccside{padding:14px;position:sticky;top:12px}.ccside h2{margin-bottom:10px}
+.ccside .srch input{width:100%}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:10px 0 8px;padding:3px;background:var(--soft);border-radius:10px}
+.seg button{border:0;background:none;border-radius:8px;padding:6px 4px;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--ink)}.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--accent),0 1px 3px #0003}
+.ccl table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0 4px;margin:-4px 0}.ccl td:last-child{width:96px;white-space:nowrap;text-align:right;line-height:1.25}.ccl td{padding:10px;font-size:13.5px}
+.ccl tr.click{cursor:pointer}.ccl tr.click td{background:color-mix(in srgb,var(--soft) 55%,transparent)}.ccl tr.click:hover td{background:var(--soft)}
+.ccl tr.sel td,.ccl tr.sel:hover td{background:color-mix(in srgb,var(--accent) 14%,transparent)}.ccl tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.ccl td:first-child{border-radius:8px 0 0 8px}.ccl td:last-child{border-radius:0 8px 8px 0}
+.ccside .empty{padding:18px 8px;font-size:13px}
+.ccacc{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-bottom:12px}.ccacc .btn{grid-column:span 2;justify-content:center;white-space:nowrap;min-width:0}.ccacc .btn:nth-child(n+4){grid-column:span 3}.ccacc .btn:nth-child(4):last-child{grid-column:span 6}.ccacc .btn svg{width:15px;height:15px;color:var(--muted)}.ccacc .btn:hover svg{color:var(--accent)}
+.mnu{position:relative}.mnu summary{list-style:none;cursor:pointer;min-width:34px;justify-content:center;font-size:16px;line-height:1}.mnu summary::-webkit-details-marker{display:none}
+.mnu[open] summary{border-color:var(--accent)}
+.mnu>div{position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px #0006;padding:5px;display:flex;flex-direction:column}
+.mnu>div button{border:0;background:none;text-align:left;padding:8px 10px;border-radius:7px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer}.mnu>div button:hover{background:var(--soft)}
+.ccsum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.ccsum>div{background:var(--soft);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ccsum span{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ccsum b{font-size:14.5px}.ccsum b.up{color:var(--good)}.ccsum b.dn{color:var(--bad)}
+.ccsum .tot{background:color-mix(in srgb,var(--accent) 12%,var(--soft));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 40%,transparent)}
+@media (max-width:980px){.ccside{position:static}}
+@media (max-width:640px){.ccsum{grid-template-columns:1fr 1fr}}
+/* desplegables propios */
+.selm{position:absolute;z-index:85;max-height:min(320px,60vh);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 40px #0006;padding:5px;display:flex;flex-direction:column;animation:calin .12s ease-out}
+.selm button{border:0;background:none;text-align:left;padding:8px 30px 8px 10px;border-radius:7px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;white-space:nowrap;position:relative}
+.selm button:hover{background:var(--soft)}.selm button:disabled{opacity:.45;cursor:default}
+.selm button.on{color:var(--accent);font-weight:600;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.selm button.on::after{content:"";position:absolute;right:11px;top:50%;width:5px;height:9px;border:solid var(--accent);border-width:0 2px 2px 0;transform:translateY(-65%) rotate(45deg)}
+.ccper{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted)}.ccper select{width:auto;min-width:190px;font-size:13.5px;color:var(--ink)}
+@media (max-width:1200px){.ccacc{grid-template-columns:1fr 1fr}.ccacc .btn,.ccacc .btn:nth-child(n+4){grid-column:auto}.ccacc .btn:last-child:nth-child(odd){grid-column:span 2}}
+.ccvac{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:22px 16px;border:1px dashed var(--line);border-radius:var(--r-sm);color:var(--muted);font-size:13px}
+.ccvac b{color:var(--ink);font-size:14px}.ccvac .bar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.arch{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.archh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.archh h3{font-size:14.5px;font-weight:650;margin:0;display:flex;align-items:center}
+.archvac{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:1px dashed var(--line);border-radius:var(--r-sm);background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+.archvac b{color:var(--ink);font-weight:600}.archvac span{opacity:.8}.archvac span::before{content:"·";margin-right:8px}
+.archvac:hover{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent)}.archvac:hover b{color:var(--accent)}

@@ -10,11 +10,11 @@ function archivosDe(cid){ const a=(S.archivos||[]).filter(x=>x.clienteId===cid).
   const c=S.cobros.filter(x=>x.clienteId===cid&&x.comprobante).map(x=>({id:'c'+x.id,adjId:x.comprobante.id,nombre:x.comprobante.nombre,tipo:x.comprobante.tipo,categoria:'Comprobante de pago',descripcion:'Pago de '+money2(x.monto)+(x.operacion?' · Op. '+x.operacion:''),fecha:x.fecha,origen:'cobro'}));
   return a.concat(c).sort((p,q)=>p.fecha<q.fecha?1:p.fecha>q.fecha?-1:0); }
 function archivosHtml(cid){ const L=archivosDe(cid);
-  return `<div class="cchead" style="margin-top:18px"><h2 style="font-size:20px;margin:0">Archivos${L.length?' <span class="sm muted">('+L.length+')</span>':''}</h2><div class="bar"><button class="btn sm" data-act="arch-subir" data-id="${cid}">${CLIP} Subir archivos</button></div></div>
+  return `<div class="arch"><div class="archh"><h3>Archivos${L.length?`<span class="cnt">${L.length}</span>`:''}</h3>${L.length?`<button class="btn sm" data-act="arch-subir" data-id="${cid}">${CLIP} Subir archivos</button>`:''}</div>
   ${L.length?`<div class="tw"><table><tbody>${L.map(a=>`<tr><td style="white-space:nowrap">${fechaTxt(a.fecha)}</td><td><b>${esc(a.nombre)}</b>${a.descripcion?`<div class="sm muted">${esc(a.descripcion)}</div>`:''}</td>
     <td>${pill(a.origen==='cobro'?'good':'info',a.categoria||'Otro')} <span class="sm muted">${tipoArch(a.tipo,a.nombre)}${a.tam?' · '+tamTxt(a.tam):''}</span></td>
     <td class="n" style="white-space:nowrap"><button class="btn sm ghost" data-act="adj-ver" data-id="${esc(a.adjId)}">Ver</button>${a.origen==='archivo'?`<button class="btn sm ghost" data-act="arch-del" data-id="${esc(a.id)}" data-cli="${cid}" title="Borrar archivo" aria-label="Borrar archivo">✕</button>`:''}</td></tr>`).join('')}</tbody></table></div>`
-  :vacioHtml('Todavía no hay archivos. Podés subir facturas, remitos, contratos o cualquier PDF o foto.')}`; }
+  :`<button class="archvac" data-act="arch-subir" data-id="${cid}">${CLIP}<b>Subir archivos</b><span>PDF o fotos</span></button>`}</div>`; }
 
 /* ---------- respaldo con archivos: van dentro del mismo .json, en base64 ---------- */
 const adjTodos=()=>adjTx('readonly',st=>st.getAll());

@@ -134,8 +134,11 @@ const POSCATS=()=>cats();
 VIEWS.ventas=function(){
   const t=tabs([['vender','Vender'],['historial','Historial de ventas'],['cc','Cuenta corriente']],UI.ventasTab,'tab-ventas');
   if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas')}<div class="tabbar">${t}<button class="btn sm tabact" data-act="cobro-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar comprobante de pago</button></div>
-    <div class="filters"><label class="field">Buscar cliente<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Nombre, teléfono o CUIT"></label>
-    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label></div><div id="res"></div>`; }
+    <div id="ccstrip"></div>
+    <div class="ccv"><div class="card ccside"><h2>Clientes</h2>
+      <span class="srch">${SVG('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>')}<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Buscar por nombre, teléfono o CUIT" aria-label="Buscar cliente"></span>
+      <div class="seg" role="group" aria-label="Qué clientes ver">${[['saldo','Con saldo'],['mov','Con movimientos'],['todos','Todos']].map(([v,t])=>`<button class="${f.ver===v?'on':''}" data-act="ccv-ver" data-v="${v}">${t}</button>`).join('')}</div>
+      <div id="res"></div></div><div id="ccdet"></div></div>`; }
   const bComp=`<button class="btn sm tabact" data-act="venta-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar venta con comprobante</button>`;
   const tb=`<div class="tabbar">${t}${bComp}</div>`;
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas')}${tb}
@@ -146,6 +149,7 @@ VIEWS.ventas=function(){
    <div class="chips"><button class="chip ${f.cat===''?'on':''}" data-act="pos-cat" data-c="">Todos</button>${POSCATS().map(c=>`<button class="chip ${f.cat===c?'on':''}" data-act="pos-cat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div><div id="res"></div></div>
    <div class="card cart" id="cart"></div></div>`;
 };
+ACT['ccv-ver']=el=>{ UI.f.ccv.ver=el.dataset.v; document.querySelectorAll('.seg [data-act="ccv-ver"]').forEach(b=>b.classList.toggle('on',b===el)); FILL.ventas(); };
 ACT['tab-ventas']=el=>{ UI.ventasTab=el.dataset.t; render(); };
 ACT['pos-cat']=el=>{ UI.f.pos.cat=el.dataset.c; render(); };
 function posLista(){ const f=UI.f.pos; const q=f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
@@ -317,3 +321,22 @@ document.addEventListener('click',e=>{ const t=e.target;
   calCerrar(); },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CAL.box){ const el=CAL.el; calCerrar(); el&&el.focus(); } });
 addEventListener('resize',calCerrar); document.addEventListener('scroll',e=>{ if(CAL.box&&!CAL.box.contains(e.target)) calUbicar(); },true);
+
+/* Desplegables propios: la lista de opciones de los <select> sigue la estética de la app.
+   El teclado sigue funcionando igual y en celular queda la lista del sistema, que es más cómoda. */
+const SEL={el:null,box:null};
+function selAbrir(el){ selCerrar(); SEL.el=el; const b=document.createElement('div'); b.className='selm'; b.setAttribute('role','listbox');
+  b.innerHTML=[...el.options].map((o,i)=>`<button type="button" role="option" data-sel-i="${i}" class="${o.selected?'on':''}" ${o.disabled?'disabled':''}>${esc(o.text)}</button>`).join('');
+  document.body.appendChild(b); SEL.box=b; const r=el.getBoundingClientRect(); b.style.minWidth=r.width+'px';
+  const h=b.offsetHeight, w=b.offsetWidth; let top=r.bottom+4; if(top+h>innerHeight-8&&r.top-h-4>8) top=r.top-h-4;
+  b.style.top=(top+scrollY)+'px'; b.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+scrollX+'px';
+  const on=b.querySelector('.on'); if(on) on.scrollIntoView({block:'nearest'}); }
+function selCerrar(){ if(SEL.box) SEL.box.remove(); SEL.box=null; SEL.el=null; }
+document.addEventListener('mousedown',e=>{ const t=e.target;
+  if(SEL.box&&SEL.box.contains(t)){ e.preventDefault(); return; }
+  if(t.tagName==='SELECT'&&!t.multiple&&!t.disabled&&e.button===0&&matchMedia('(pointer:fine)').matches){ e.preventDefault(); t.focus(); if(SEL.el===t) selCerrar(); else selAbrir(t); return; }
+  selCerrar(); },true);
+document.addEventListener('click',e=>{ const b=SEL.box&&e.target.closest('[data-sel-i]'); if(!b) return; const el=SEL.el; selCerrar();
+  if(el.selectedIndex!==+b.dataset.selI){ el.selectedIndex=+b.dataset.selI; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } el.focus(); },true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&SEL.box){ const el=SEL.el; selCerrar(); el&&el.focus(); } else if(SEL.box&&e.target===SEL.el) selCerrar(); });
+addEventListener('resize',selCerrar); document.addEventListener('scroll',e=>{ if(SEL.box&&!SEL.box.contains(e.target)) selCerrar(); },true);
