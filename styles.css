@@ -151,13 +151,23 @@ tr.tot td{font-weight:700;background:var(--soft)}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:12.5px;cursor:pointer;font-weight:600;color:var(--muted)}
 .chip:hover{color:var(--ink)}
 .chip.on{background:color-mix(in srgb,var(--accent) 20%,var(--surface));color:var(--ink);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;max-height:60vh;overflow-y:auto;padding:2px}
-.tile{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:80px;transition:border-color .12s,transform .08s}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;max-height:60vh;overflow-y:auto;padding:8px 8px 2px 2px}
+.tile{position:relative;height:100%;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-height:80px;transition:border-color .12s,transform .08s}
 .tile:hover{border-color:var(--accent)}.tile:active{transform:scale(.98)}
-.tile .nm{font-weight:600;font-size:13.5px;line-height:1.25}
-.tile .pr{font-size:14.5px;font-weight:700;color:var(--accent);margin-top:auto}
+.tile .nm{font-weight:600;font-size:13.5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile .pr{font-size:14.5px;font-weight:700;color:var(--accent);margin-top:auto;padding-top:6px}
 .tile .st{font-size:11.5px;color:var(--muted)}
-.tile.out{opacity:.45}
+.tile .st.lo{color:var(--warn);font-weight:600}
+.tile .st.lo::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-right:5px;vertical-align:1px}
+.tile.out{background:color-mix(in srgb,var(--bad) 7%,var(--surface));border:1px dashed color-mix(in srgb,var(--bad) 55%,var(--line));cursor:not-allowed}
+.tile.out:hover{border-color:var(--bad)}
+.tile.out .nm{color:var(--muted);padding-right:62px}
+.tile.out .pr{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.tile.out .st{color:var(--bad);font-weight:700}
+.tile .bdg{position:absolute;top:8px;right:8px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--bad);padding:2px 6px;border-radius:99px}
+.tile.inc{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tile .qn{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--bg);pointer-events:none;animation:qpop .18s ease-out}
+@keyframes qpop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 .cart{position:sticky;top:12px}
 .line{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .line .q{display:flex;gap:6px;align-items:center}
@@ -240,8 +250,7 @@ tfoot td{border-top:2px solid var(--line)}
 .tabbar .tabact{flex:none;margin-bottom:6px;border:1px dashed var(--accent);color:var(--accent);background:transparent;border-radius:99px;padding:6px 13px}
 .tabbar .tabact:hover{background:color-mix(in srgb,var(--accent) 12%,transparent);border-style:solid}
 .srch{position:relative;display:block}.srch svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
-.srch input{padding-left:38px;padding-right:62px;margin-top:0}.srch kbd{position:absolute;right:9px;top:50%;transform:translateY(-50%);font:600 11px/1 inherit;font-family:inherit;color:var(--muted);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:3px 6px;background:var(--soft);pointer-events:none}
-.srch input:focus~kbd{color:var(--ink)}
+.srch input{padding-left:38px;margin-top:0}
 pre.ticket{background:var(--soft);padding:14px;border-radius:10px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:pre-wrap;margin:0}
 .banner{padding:9px 13px;border-radius:10px;background:var(--info-bg);color:var(--ink);font-size:13px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .banner.warn{background:var(--warn-bg)}
