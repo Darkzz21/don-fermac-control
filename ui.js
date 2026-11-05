@@ -321,3 +321,22 @@ document.addEventListener('click',e=>{ const t=e.target;
   calCerrar(); },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CAL.box){ const el=CAL.el; calCerrar(); el&&el.focus(); } });
 addEventListener('resize',calCerrar); document.addEventListener('scroll',e=>{ if(CAL.box&&!CAL.box.contains(e.target)) calUbicar(); },true);
+
+/* Desplegables propios: la lista de opciones de los <select> sigue la estética de la app.
+   El teclado sigue funcionando igual y en celular queda la lista del sistema, que es más cómoda. */
+const SEL={el:null,box:null};
+function selAbrir(el){ selCerrar(); SEL.el=el; const b=document.createElement('div'); b.className='selm'; b.setAttribute('role','listbox');
+  b.innerHTML=[...el.options].map((o,i)=>`<button type="button" role="option" data-sel-i="${i}" class="${o.selected?'on':''}" ${o.disabled?'disabled':''}>${esc(o.text)}</button>`).join('');
+  document.body.appendChild(b); SEL.box=b; const r=el.getBoundingClientRect(); b.style.minWidth=r.width+'px';
+  const h=b.offsetHeight, w=b.offsetWidth; let top=r.bottom+4; if(top+h>innerHeight-8&&r.top-h-4>8) top=r.top-h-4;
+  b.style.top=(top+scrollY)+'px'; b.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+scrollX+'px';
+  const on=b.querySelector('.on'); if(on) on.scrollIntoView({block:'nearest'}); }
+function selCerrar(){ if(SEL.box) SEL.box.remove(); SEL.box=null; SEL.el=null; }
+document.addEventListener('mousedown',e=>{ const t=e.target;
+  if(SEL.box&&SEL.box.contains(t)){ e.preventDefault(); return; }
+  if(t.tagName==='SELECT'&&!t.multiple&&!t.disabled&&e.button===0&&matchMedia('(pointer:fine)').matches){ e.preventDefault(); t.focus(); if(SEL.el===t) selCerrar(); else selAbrir(t); return; }
+  selCerrar(); },true);
+document.addEventListener('click',e=>{ const b=SEL.box&&e.target.closest('[data-sel-i]'); if(!b) return; const el=SEL.el; selCerrar();
+  if(el.selectedIndex!==+b.dataset.selI){ el.selectedIndex=+b.dataset.selI; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); } el.focus(); },true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&SEL.box){ const el=SEL.el; selCerrar(); el&&el.focus(); } else if(SEL.box&&e.target===SEL.el) selCerrar(); });
+addEventListener('resize',selCerrar); document.addEventListener('scroll',e=>{ if(SEL.box&&!SEL.box.contains(e.target)) selCerrar(); },true);

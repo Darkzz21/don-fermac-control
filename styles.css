@@ -330,3 +330,10 @@ input[type="date"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:/
 .ccsum .tot{background:color-mix(in srgb,var(--accent) 12%,var(--soft));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 40%,transparent)}
 @media (max-width:980px){.ccside{position:static}}
 @media (max-width:640px){.ccsum{grid-template-columns:1fr 1fr}}
+/* desplegables propios */
+.selm{position:absolute;z-index:85;max-height:min(320px,60vh);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 40px #0006;padding:5px;display:flex;flex-direction:column;animation:calin .12s ease-out}
+.selm button{border:0;background:none;text-align:left;padding:8px 30px 8px 10px;border-radius:7px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;white-space:nowrap;position:relative}
+.selm button:hover{background:var(--soft)}.selm button:disabled{opacity:.45;cursor:default}
+.selm button.on{color:var(--accent);font-weight:600;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.selm button.on::after{content:"";position:absolute;right:11px;top:50%;width:5px;height:9px;border:solid var(--accent);border-width:0 2px 2px 0;transform:translateY(-65%) rotate(45deg)}
+.ccper{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--muted)}.ccper select{width:auto;min-width:190px;font-size:13.5px;color:var(--ink)}

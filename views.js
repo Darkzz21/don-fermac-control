@@ -212,7 +212,7 @@ ACT['cli-edit']=el=>cliForm(IDX.cli[+el.dataset.id]);
 /* ficha del cliente con la cuenta corriente como planilla (debe / haber / saldo) por período de cierre */
 UI.cc={id:null,per:'0'};
 const rangoPer=(c,per)=>per==='todo'?{desde:'',hasta:''}:cicloCC(c,+per);
-function opcionesPer(c){ const o=[]; for(let k=0;k<12;k++){ const r=cicloCC(c,k); o.push({v:String(k),t:(k===0?'Período actual: ':'')+fechaTxt(r.desde)+' al '+fechaTxt(r.hasta)}); } o.push({v:'todo',t:'Toda la cuenta'}); return o; }
+function opcionesPer(c){ const o=[], a=hoy().slice(0,4); for(let k=0;k<12;k++){ const r=cicloCC(c,k); o.push({v:String(k),t:(k===0?'Actual · ':'')+fechaCorta(r.desde)+' al '+fechaCorta(r.hasta)+(r.hasta.slice(0,4)!==a?'/'+r.hasta.slice(2,4):'')}); } o.push({v:'todo',t:'Toda la cuenta'}); return o; }
 function resumenCCTxt(c,per){ const r=rangoPer(c,per),R=resumenCC(c.id,r.desde,r.hasta);
   const L=[S.config.nombre+' · Resumen de cuenta','Cliente: '+c.nombre,per==='todo'?'Toda la cuenta':'Período del '+fechaTxt(r.desde)+' al '+fechaTxt(r.hasta),''];
   if(per!=='todo') L.push('Saldo anterior: '+money2(R.anterior)); R.L.forEach(m=>L.push(fechaCorta(m.fecha)+' '+m.concepto+': '+(m.debe?'+ '+money2(m.debe):'- '+money2(m.haber))));
@@ -244,7 +244,7 @@ function ccVentasHtml(){ const f=UI.f.ccv, q=f.q.trim().toLowerCase().normalize(
     :vacioHtml(f.ver==='saldo'?'Ningún cliente debe plata. Elegí «Todos» para ver el resto.':'No hay clientes con esa búsqueda.');
   const c=UI.cc.id?IDX.cli[UI.cc.id]:null, s=c?saldoCliente(c.id):0;
   const det=c?`<div class="card"><div class="cchead"><div><h2 style="font-size:20px;margin:0">${esc(c.nombre)}</h2><div class="sm muted">${esc(c.telefono||'Sin teléfono')}${c.cuit?' · CUIT '+esc(c.cuit):''} · ${s<-0.004?'<b class="up">Saldo a favor '+money2(-s)+'</b>':'Debe <b class="'+(s>0.004?'dn':'')+'">'+money2(s)+'</b>'}</div></div>
-      <select data-chg="cc-per" aria-label="Período">${opts(opcionesPer(c),UI.cc.per)}</select></div>
+      <label class="ccper"><span>Período</span><select data-chg="cc-per">${opts(opcionesPer(c),UI.cc.per)}</select></label></div>
     <div class="ccacc"><button class="btn sm pri" data-act="cli-cobro" data-id="${c.id}">Registrar cobro</button><button class="btn sm" data-act="cc-aj" data-id="${c.id}">Cargo o descuento</button>
       <details class="mnu"><summary class="btn sm" aria-label="Más opciones">⋯</summary><div>${c.telefono?`<button data-act="cc-wa" data-id="${c.id}">Enviar resumen por WhatsApp</button>`:''}<button data-act="cc-csv" data-id="${c.id}">Exportar a Excel</button><button data-act="cli-ver" data-id="${c.id}">Ver ficha del cliente</button></div></details></div>
     <div id="ccbox">${planillaCC(c,UI.cc.per,true)}</div>${archivosHtml(c.id)}</div>`:'';
