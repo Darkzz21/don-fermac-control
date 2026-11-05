@@ -133,13 +133,12 @@ VIEWS.panel=function(){
 const POSCATS=()=>cats();
 VIEWS.ventas=function(){
   const t=tabs([['vender','Vender'],['historial','Historial de ventas'],['cc','Cuenta corriente']],UI.ventasTab,'tab-ventas');
-  if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas','Cuenta corriente de cada cliente: lo que compró, lo que pagó y cuánto debe, como una planilla')}${t}
+  if(UI.ventasTab==='cc'){ const f=UI.f.ccv; return `${encab('Ventas')}<div class="tabbar">${t}<button class="btn sm tabact" data-act="cobro-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar comprobante de pago</button></div>
     <div class="filters"><label class="field">Buscar cliente<input data-bind="f.ccv.q" value="${esc(f.q)}" placeholder="Nombre, teléfono o CUIT"></label>
-    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label>
-    <div class="bar" style="align-self:flex-end"><button class="btn" data-act="cobro-comp">Cargar comprobante de pago</button></div></div><div id="res"></div>`; }
+    <label class="field">Ver<select data-bind="f.ccv.ver">${opts([{v:'saldo',t:'Con saldo pendiente'},{v:'mov',t:'Con movimientos'},{v:'todos',t:'Todos los clientes'}],f.ver)}</select></label></div><div id="res"></div>`; }
   const bComp=`<button class="btn sm tabact" data-act="venta-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar venta con comprobante</button>`;
   const tb=`<div class="tabbar">${t}${bComp}</div>`;
-  if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas','Historial y anulaciones')}${tb}
+  if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas')}${tb}
     <div class="filters"><label class="field">Buscar<input data-bind="f.hist.q" value="${esc(f.q)}" placeholder="N°, cliente o medio de pago"></label><label class="field">Desde<input type="date" data-bind="f.hist.desde" value="${esc(f.desde)}"></label><label class="field">Hasta<input type="date" data-bind="f.hist.hasta" value="${esc(f.hasta)}"></label></div><div id="res"></div>`; }
   const f=UI.f.pos;
   return `${encab('Ventas')}${tb}
@@ -292,3 +291,29 @@ ACT['caja-cerrar']=function(){ const f=UI.caja.fecha; const r=resumenCaja(f); co
   const i=S.cajas.findIndex(c=>c.fecha===f); if(i>=0) S.cajas[i]=reg; else S.cajas.push(reg); guardar(); toast('Caja cerrada'); render(); };
 ACT['caja-mov']=function(el){ const t=el.dataset.t; formModal(t==='Retiro'?'Registrar retiro':'Registrar ingreso',[{n:'monto',l:'Monto ($)',t:'num',req:true,min:0.01},{n:'motivo',l:'Motivo',t:'text',full:true,ph:t==='Retiro'?'Ej: retiro del dueño, pago a proveedor':'Ej: cambio inicial'}],{},d=>{ S.cajaMov.push({id:sig('W'),fecha:UI.caja.fecha,tipo:t,monto:d.monto,motivo:d.motivo}); guardar(); cerrar(); render(); }); };
 AFTER.caja=function(){ const c=$('#cj_con'); if(c&&c.value) LIVE['caja-dif'](c); };
+
+/* Calendario propio para los campos de fecha: reemplaza el del navegador para que siga la estética de la app */
+const CAL={el:null,box:null,y:0,m:0};
+const CAL_MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const calIso=(y,m,d)=>y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+function calAbrir(el){ calCerrar(); CAL.el=el; const v=el.value||hoy(); CAL.y=+v.slice(0,4); CAL.m=+v.slice(5,7)-1;
+  const b=document.createElement('div'); b.className='cal'; b.setAttribute('role','dialog'); b.setAttribute('aria-label','Elegir fecha'); document.body.appendChild(b); CAL.box=b; calPintar(); calUbicar(); }
+function calUbicar(){ const r=CAL.el.getBoundingClientRect(), b=CAL.box, w=b.offsetWidth, h=b.offsetHeight;
+  let top=r.bottom+6, left=Math.min(r.left, innerWidth-w-8); if(top+h>innerHeight-8&&r.top-h-6>8) top=r.top-h-6;
+  b.style.top=(top+scrollY)+'px'; b.style.left=Math.max(8,left)+scrollX+'px'; }
+function calPintar(){ const {y,m}=CAL, sel=CAL.el.value, h=hoy(); const ini=(new Date(y,m,1).getDay()+6)%7, dias=new Date(y,m+1,0).getDate();
+  let cs=''; for(let i=0;i<ini;i++) cs+='<span></span>';
+  for(let d=1;d<=dias;d++){ const f=calIso(y,m,d); cs+=`<button type="button" data-cal-d="${f}" class="${f===sel?'sel':''} ${f===h?'hoy':''}">${d}</button>`; }
+  CAL.box.innerHTML=`<div class="calh"><button type="button" data-cal-m="-1" aria-label="Mes anterior">‹</button><b>${CAL_MESES[m]} ${y}</b><button type="button" data-cal-m="1" aria-label="Mes siguiente">›</button></div>
+   <div class="calw">${['Lu','Ma','Mi','Ju','Vi','Sá','Do'].map(x=>`<span>${x}</span>`).join('')}</div><div class="cald">${cs}</div>
+   <div class="calf"><button type="button" data-cal-x="">Borrar</button><button type="button" data-cal-x="hoy">Hoy</button></div>`; }
+function calPoner(v){ const el=CAL.el; calCerrar(); el.value=v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+function calCerrar(){ if(CAL.box) CAL.box.remove(); CAL.box=null; CAL.el=null; }
+document.addEventListener('click',e=>{ const t=e.target;
+  if(CAL.box&&CAL.box.contains(t)){ e.preventDefault(); const b=t.closest('button'); if(!b) return;
+    if(b.dataset.calM){ CAL.m+= +b.dataset.calM; if(CAL.m<0){CAL.m=11;CAL.y--;} if(CAL.m>11){CAL.m=0;CAL.y++;} calPintar(); }
+    else if(b.dataset.calD) calPoner(b.dataset.calD); else if(b.dataset.calX!==undefined) calPoner(b.dataset.calX==='hoy'?hoy():''); return; }
+  if(t.matches&&t.matches('input[type="date"]')){ e.preventDefault(); if(CAL.el===t) calCerrar(); else calAbrir(t); return; }
+  calCerrar(); },true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&CAL.box){ const el=CAL.el; calCerrar(); el&&el.focus(); } });
+addEventListener('resize',calCerrar); document.addEventListener('scroll',e=>{ if(CAL.box&&!CAL.box.contains(e.target)) calUbicar(); },true);
