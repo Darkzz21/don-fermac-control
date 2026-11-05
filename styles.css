@@ -314,9 +314,9 @@ input[type="date"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:/
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:10px 0 8px;padding:3px;background:var(--soft);border-radius:10px}
 .seg button{border:0;background:none;border-radius:8px;padding:6px 4px;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
 .seg button:hover{color:var(--ink)}.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--accent),0 1px 3px #0003}
-.ccl table{width:100%;border-collapse:collapse}.ccl td{padding:9px 8px;border-top:1px solid var(--line);font-size:13.5px}
-.ccl tr:first-child td{border-top:0}.ccl tr.click{cursor:pointer}.ccl tr.click:hover td{background:var(--soft)}
-.ccl tr.sel td{background:color-mix(in srgb,var(--accent) 12%,transparent)}.ccl tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.ccl table{width:100%;border-collapse:separate;border-spacing:0 4px;margin:-4px 0}.ccl td{padding:10px;font-size:13.5px}
+.ccl tr.click{cursor:pointer}.ccl tr.click td{background:color-mix(in srgb,var(--soft) 55%,transparent)}.ccl tr.click:hover td{background:var(--soft)}
+.ccl tr.sel td,.ccl tr.sel:hover td{background:color-mix(in srgb,var(--accent) 14%,transparent)}.ccl tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .ccl td:first-child{border-radius:8px 0 0 8px}.ccl td:last-child{border-radius:0 8px 8px 0}
 .ccside .empty{padding:18px 8px;font-size:13px}
 .ccacc{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
