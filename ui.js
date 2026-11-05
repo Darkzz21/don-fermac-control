@@ -183,9 +183,23 @@ function pedirPeso(p){ abrir('Peso de '+p.nombre,`<p class="sm muted" style="mar
   <label class="field">Otro peso en gramos<input id="peso" inputmode="decimal" data-key="peso-enter" data-id="${p.id}" placeholder="Por ejemplo 350"></label>`,{foot:`<button class="btn" data-act="cerrar">Cancelar</button><button class="btn pri" data-act="peso-ok" data-id="${p.id}" data-g="">Agregar</button>`}); }
 ACT['peso-enter']=el=>ACT['peso-ok']({dataset:{id:el.dataset.id,g:''}});
 ACT['peso-ok']=function(el){ let g=el.dataset.g; if(g==='') { const v=num($('#peso').value); if(!v||v<=0){ toast('Ingresá el peso en gramos.',true); return; } g=v; } cerrar(); addCart(+el.dataset.id,r3(+g/1000)); };
+const SVG=d=>`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const PAYI={'Efectivo':SVG('<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>'),
+  'Transferencia':SVG('<path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>'),
+  'Débito':SVG('<rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19M6.5 15h4"/>'),
+  'Crédito':SVG('<rect x="5.5" y="8.5" width="16" height="11" rx="2"/><path d="M5.5 12.5h16M2.5 15.5V7a2 2 0 0 1 2-2h12"/>'),
+  'Mercado Pago':SVG('<rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="3.5" width="7" height="7" rx="1"/><rect x="3.5" y="13.5" width="7" height="7" rx="1"/><path d="M14 14h2.5v2.5M20.5 14v.01M14 20.5h.01M17.5 20.5h3v-3"/>'),
+  'Cuenta corriente':SVG('<path d="M5.5 3.5h10.5a2 2 0 0 1 2 2v15l-3-1.8-3 1.8-3-1.8-3 1.8V5.5a2 2 0 0 1 2-2z"/><path d="M8.5 8.5h6M8.5 12h6"/>')};
+const CARTI=SVG('<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.6l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.8a1.5 1.5 0 0 0 1.4-1.1L21 8H6.2"/>');
+const TRASH=SVG('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>');
 function lineaCart(it,i){ const p=prod(it.productoId); const kg=p.unidad==='kg';
-  return `<div class="line"><div><b>${esc(p.nombre)}</b><div class="sm muted">${kg?qtyTxt(p,it.cant)+' × ':it.cant+' × '}<input class="cq" style="width:92px;padding:2px 6px" data-chg="cart-price" data-i="${i}" value="${fnum(it.precio)}" inputmode="decimal" aria-label="Precio unitario">${kg?' / kg':''}</div></div>
-   <div style="text-align:right"><b>${moneyA(it.cant*it.precio)}</b><div class="q" style="justify-content:flex-end;margin-top:3px"><input data-chg="cart-qty" data-i="${i}" value="${fnum(it.cant)}" inputmode="decimal" aria-label="Cantidad${kg?' en kg':''}">${kg?'<span class="sm muted">kg</span>':''}<button class="btn sm ghost" data-act="cart-del" data-i="${i}" aria-label="Quitar">✕</button></div></div></div>`; }
+  // el precio se muestra como texto y se vuelve editable al tocarlo
+  const precio=UI.cart.editP===i?`<input class="cq" data-chg="cart-price" data-i="${i}" value="${fnum(it.precio)}" inputmode="decimal" aria-label="Precio unitario" autofocus>`
+    :`<button class="pe" data-act="cart-pedit" data-i="${i}" title="Cambiar precio">${money(it.precio)}</button>`;
+  const cant=kg?`<span class="kgq"><input data-chg="cart-qty" data-i="${i}" value="${fnum(it.cant)}" inputmode="decimal" aria-label="Cantidad en kg"><span>kg</span></span>`
+    :`<span class="stp"><button data-act="cart-step" data-i="${i}" data-d="-1" aria-label="Restar uno">−</button><b>${it.cant}</b><button data-act="cart-step" data-i="${i}" data-d="1" aria-label="Sumar uno">+</button></span>`;
+  return `<div class="line"><b class="lnm">${esc(p.nombre)}</b><b class="lst">${moneyA(it.cant*it.precio)}</b>
+   <span class="lpr">${kg?qtyTxt(p,it.cant):it.cant} × ${precio}${kg?' / kg':''}</span><span class="lq">${cant}<button class="del" data-act="cart-del" data-i="${i}" aria-label="Quitar">${TRASH}</button></span></div>`; }
 // marca en las tarjetas cuánto de cada producto hay en la venta actual
 function marcarTiles(){ const m={}; UI.cart.items.forEach(i=>m[i.productoId]=i.cant);
   document.querySelectorAll('.tiles .tile').forEach(t=>{ const id=+t.dataset.id, c=m[id]; let q=t.querySelector('.qn');
@@ -196,28 +210,40 @@ function marcarTiles(){ const m={}; UI.cart.items.forEach(i=>m[i.productoId]=i.c
 function quitarCart(pid){ const i=UI.cart.items.findIndex(x=>x.productoId===pid); if(i<0) return; const it=UI.cart.items[i];
   if(prod(pid).unidad==='kg'||it.cant<=1) UI.cart.items.splice(i,1); else it.cant=r3(it.cant-1); renderCart(); }
 document.addEventListener('contextmenu',e=>{ const t=e.target.closest('.tiles .tile'); if(!t) return; e.preventDefault(); quitarCart(+t.dataset.id); });
-function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const t=totalesVenta(C.items,num(C.descPct)||0);
-  const vuelto=C.medio==='Efectivo'&&num(C.recibido)>=t.total&&t.total>0?r2(num(C.recibido)-t.total):null;
-  c.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Venta actual</h2>${C.items.length?'<button class="btn sm ghost" data-act="cart-clear">Vaciar</button>':''}</div>
-  ${C.items.length?C.items.map(lineaCart).join(''):'<div class="empty">Elegí productos de la lista para empezar.</div>'}
+function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const t=totalesVenta(C.items,num(C.descPct)||0); const n=C.items.length;
+  c.innerHTML=`<div class="chead"><h2>Venta <span class="vnum">#${(S.seq.V||0)+1}</span>${n?`<span class="cnt">${n}</span>`:''}</h2>${n?'<button class="btn sm ghost vac" data-act="cart-clear">Vaciar</button>':''}</div>
+  ${n?`<div class="clist">${C.items.map(lineaCart).join('')}</div>`:`<div class="empty cvac">${CARTI}Sin productos</div>`}
   <div class="frm" style="margin-top:10px"><label class="field">Cliente<select data-chg="cart-cli"><option value="">Consumidor final</option>${S.clientes.map(x=>`<option value="${x.id}" ${sel(C.clienteId,x.id)}>${esc(x.nombre)}</option>`).join('')}</select></label>
    <label class="field">Descuento %<input data-chg="cart-desc" value="${esc(C.descPct)}" inputmode="decimal" placeholder="0"></label></div>
-  <div class="pay" role="group" aria-label="Medio de pago">${MEDIOS.map(m=>`<button class="btn ${C.medio===m?'on':''}" data-act="cart-medio" data-m="${m}">${m==='Cuenta corriente'?'Cta. cte.':m}</button>`).join('')}</div>
+  <div class="pay" role="group" aria-label="Medio de pago">${MEDIOS.map(m=>`<button class="btn ${C.medio===m?'on':''}" data-act="cart-medio" data-m="${m}">${PAYI[m]||''}<span>${m==='Cuenta corriente'?'Cta. cte.':m}</span></button>`).join('')}</div>
   ${C.comp?`<div class="cartcomp"><div class="cc1">${typeof CLIP!=='undefined'?CLIP:''}<b>${esc(C.comp.file?C.comp.file.name:'Comprobante')}</b><button class="btn sm ghost" data-act="cart-comp-del" aria-label="Quitar comprobante">✕</button></div>
     <div class="cc2"><span>${moneyA(C.comp.monto)}${C.comp.datos&&C.comp.datos.nombre?' · '+esc(C.comp.datos.nombre):''}</span>${Math.abs(C.comp.monto-t.total)<0.005?pill('good','Coincide con el total'):pill('warn','No coincide: la venta suma '+moneyA(t.total))}</div></div>`
-    :C.items.length?`<button class="btn sm ghost" style="margin-top:8px" data-act="cart-comp">${typeof CLIP!=='undefined'?CLIP:''} Adjuntar comprobante de pago</button>`:''}
-  ${C.medio==='Efectivo'?`<label class="field">Recibido en efectivo<input data-live="cart-rec" value="${esc(C.recibido)}" inputmode="decimal" placeholder="Opcional, para calcular el vuelto"></label><div class="sm" id="vuelto" style="margin-top:4px">${vuelto!=null?'Vuelto: <b>'+moneyA(vuelto)+'</b>':''}</div>`:''}
+    :n&&(C.medio==='Transferencia'||C.medio==='Mercado Pago')?`<button class="btn sm ghost" style="margin-top:2px" data-act="cart-comp">${typeof CLIP!=='undefined'?CLIP:''} Adjuntar comprobante de pago</button>`:''}
+  ${C.medio==='Efectivo'&&n?`<label class="field" style="margin-top:4px">Recibido en efectivo<input data-live="cart-rec" value="${esc(C.recibido)}" inputmode="decimal" placeholder="Opcional, para calcular el vuelto"></label>`:''}
   ${t.desc>0?`<div class="sm muted" style="display:flex;justify-content:space-between;margin-top:8px"><span>Subtotal</span><span>${moneyA(t.sub)}</span></div><div class="sm muted" style="display:flex;justify-content:space-between"><span>Descuento</span><span>− ${moneyA(t.desc)}</span></div>`:''}
   <div class="total"><span>Total</span><span>${moneyA(t.total)}</span></div>
-  <button class="btn pri" style="width:100%;justify-content:center;margin-top:10px;padding:12px;font-size:16px" data-act="cobrar" ${C.items.length?'':'disabled'}>Cobrar ${C.items.length?moneyA(t.total):''}</button>`; marcarTiles(); }
-LIVE['cart-rec']=el=>{ UI.cart.recibido=el.value; const t=totalesVenta(UI.cart.items,num(UI.cart.descPct)||0); const r=num(el.value); const v=$('#vuelto'); if(v) v.innerHTML=r!=null&&r>=t.total&&t.total>0?'Vuelto: <b>'+money2(r2(r-t.total))+'</b>':''; };
+  <div id="vuelto">${C.medio==='Efectivo'&&String(C.recibido||'').trim()?vueltoHtml(num(C.recibido),t.total):''}</div>
+  <button class="btn pri" style="width:100%;justify-content:center;margin-top:10px;padding:12px;font-size:16px" data-act="cobrar" ${n?'':'disabled'}>Cobrar ${n?moneyA(t.total):''}</button>`; marcarTiles();
+  if(C.editP!=null){ const e=c.querySelector('.cq'); if(e){ e.focus(); e.select(); } } }
+// muestra el vuelto, lo que falta o un aviso si el monto parece mal escrito
+function vueltoHtml(rec,total){ if(rec==null||!(total>0)) return '';
+  if(rec<total) return `<div class="vlt falta"><span>Falta</span><b>${moneyA(r2(total-rec))}</b></div>`;
+  return `<div class="vlt"><span>Vuelto</span><b>${moneyA(r2(rec-total))}</b></div>${rec>=total*5&&rec-total>=10000?`<div class="vlt-av">Revisá el monto recibido: es ${fmt(rec/total,0)} veces el total.</div>`:''}`; }
+// escribe el monto con puntos de miles mientras se tipea (ej. 1.000.000) sin mover el cursor
+function miles(el){ const v=el.value, pos=el.selectionStart||v.length; const antes=v.slice(0,pos).replace(/[^\d,]/g,'').length;
+  let [ent,dec]=v.replace(/[^\d,]/g,'').split(','); ent=(ent||'').replace(/^0+(?=\d)/,''); const f=ent.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(dec!==undefined?','+dec.slice(0,2):'');
+  el.value=f; let n=0,i=0; while(i<f.length&&n<antes){ if(/[\d,]/.test(f[i])) n++; i++; } el.setSelectionRange(i,i); }
+LIVE['cart-rec']=el=>{ miles(el); UI.cart.recibido=el.value; const t=totalesVenta(UI.cart.items,num(UI.cart.descPct)||0); const v=$('#vuelto'); if(v) v.innerHTML=el.value.trim()?vueltoHtml(num(el.value),t.total):''; };
 CHG['cart-qty']=el=>{ const i=+el.dataset.i,it=UI.cart.items[i]; const v=num(el.value); const p=prod(it.productoId);
   if(v==null||v<=0){ UI.cart.items.splice(i,1); } else if(v>stockDe(p.id)+1e-9){ toast('Stock insuficiente: hay '+qtyTxt(p,stockDe(p.id))+'.',true); } else it.cant=p.unidad==='kg'?r3(v):Math.round(v); renderCart(); };
-CHG['cart-price']=el=>{ const v=num(el.value); if(v==null||v<0){ toast('Precio inválido.',true); } else UI.cart.items[+el.dataset.i].precio=v; renderCart(); };
+CHG['cart-price']=el=>{ const v=num(el.value); if(v==null||v<0){ toast('Precio inválido.',true); } else UI.cart.items[+el.dataset.i].precio=v; UI.cart.editP=null; renderCart(); };
+ACT['cart-pedit']=el=>{ UI.cart.editP=+el.dataset.i; renderCart(); };
+ACT['cart-step']=el=>{ const i=+el.dataset.i, it=UI.cart.items[i]; if(!it) return; if(+el.dataset.d>0) addCart(it.productoId,1); else quitarCart(it.productoId); };
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&UI.cart&&UI.cart.editP!=null&&e.target.classList.contains('cq')){ UI.cart.editP=null; renderCart(); } });
 CHG['cart-cli']=el=>{ UI.cart.clienteId=el.value; };
 CHG['cart-desc']=el=>{ const v=num(el.value); if(el.value.trim()!==''&&(v==null||v<0||v>100)){ toast('El descuento tiene que estar entre 0 y 100.',true); UI.cart.descPct=''; } else UI.cart.descPct=el.value.trim(); renderCart(); };
-ACT['cart-del']=el=>{ UI.cart.items.splice(+el.dataset.i,1); renderCart(); };
-ACT['cart-clear']=()=>{ UI.cart.items=[]; UI.cart.recibido=''; UI.cart.descPct=''; UI.cart.comp=null; renderCart(); };
+ACT['cart-del']=el=>{ UI.cart.items.splice(+el.dataset.i,1); UI.cart.editP=null; renderCart(); };
+ACT['cart-clear']=()=>{ const n=UI.cart.items.length; confirmar(`¿Vaciar la venta? Se ${n===1?'quita el producto cargado':'quitan los '+n+' productos cargados'}.`,()=>{ UI.cart.items=[]; UI.cart.recibido=''; UI.cart.descPct=''; UI.cart.comp=null; UI.cart.editP=null; renderCart(); },'Vaciar'); };
 ACT['cart-medio']=el=>{ UI.cart.medio=el.dataset.m; renderCart(); };
 ACT.cobrar=function(){ const C=UI.cart; if(!C.items.length) return;
   if(C.medio==='Cuenta corriente'&&!C.clienteId){ toast('Para vender en cuenta corriente elegí un cliente.',true); return; }
