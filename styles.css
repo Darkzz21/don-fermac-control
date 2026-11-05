@@ -277,13 +277,15 @@ pre.ticket{background:var(--soft);padding:14px;border-radius:10px;font-family:ui
 @media (max-width:760px){.tabbar{flex-wrap:wrap;box-shadow:none}.tabbar .tabs{flex-basis:100%;box-shadow:inset 0 -1px 0 var(--line)}.tabbar .tabact{margin:2px 0 0}}
 @media (max-width:980px){.clist{max-height:none;overflow:visible;margin-right:0;padding-right:0}}
 @media (max-width:440px){.pay button svg{display:none}}
-/* lista de la venta con fondo más oscuro y barras de desplazamiento con el estilo de la app */
+/* lista de la venta con fondo más oscuro */
 .clist{background:color-mix(in srgb,var(--bg) 70%,var(--surface));border:1px solid var(--line);border-radius:var(--r-sm);padding:2px 12px;margin:10px 0 0}
-.clist,.tiles,.tw{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent) 45%,var(--line)) transparent}
-.clist::-webkit-scrollbar,.tiles::-webkit-scrollbar,.tw::-webkit-scrollbar{width:8px;height:8px}
-.clist::-webkit-scrollbar-track,.tiles::-webkit-scrollbar-track,.tw::-webkit-scrollbar-track{background:transparent}
-.clist::-webkit-scrollbar-thumb,.tiles::-webkit-scrollbar-thumb,.tw::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:99px;border:2px solid transparent;background-clip:padding-box}
-.clist::-webkit-scrollbar-thumb:hover,.tiles::-webkit-scrollbar-thumb:hover,.tw::-webkit-scrollbar-thumb:hover{background-color:var(--accent)}
+/* barras de desplazamiento con el estilo de la app, en toda la página */
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--accent) 45%,var(--line)) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:99px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background-color:var(--accent)}
+::-webkit-scrollbar-corner{background:transparent}
 @media (max-width:980px){.clist{padding:2px 12px;margin-right:0}}
 .vlt.falta{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
 .vlt-av{margin-top:6px;padding:7px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent)}
