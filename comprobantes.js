@@ -171,9 +171,9 @@ function modalCobro(clienteId,abrirSelector,modo){ modo=modo||'cobro';
   formModal(cobro?'Registrar cobro'+(c?' · '+c.nombre:''):modo==='venta'?'Cargar venta con comprobante':'Adjuntar comprobante a la venta',campos,vals,cobro?guardarCobro:modo==='venta'?guardarVentaComp:guardarCompCarrito,
     {wide:true,okText:cobro?'Guardar':modo==='venta'?'Registrar venta':'Usar en esta venta'});
   $('#mdb').insertAdjacentHTML('afterbegin',`<div class="comp" id="compz"><input type="file" id="compf" accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,.pdf" hidden>
-    <button class="btn" type="button" id="compb">${CLIP} Subir comprobante</button><span class="sm muted" id="compst">Foto (JPG, PNG, HEIC del iPhone), captura o PDF del pago. También podés arrastrarlo o pegar una captura con Ctrl+V. Leo todos los datos y completo el formulario.</span><div id="compdat" style="width:100%"></div><div class="chk" id="compchk"></div></div>`);
+    <button class="archvac" type="button" id="compb">${CLIP}<b>Subir comprobante</b><span>PDF, foto o captura · arrastralo o pegalo con Ctrl+V</span></button><div class="compf dn0" id="compst"></div><div id="compdat"></div><div class="chk" id="compchk"></div></div>`);
   const z=$('#compz'), inp=$('#compf');
-  $('#compb').onclick=()=>inp.click(); inp.onchange=()=>{ if(inp.files[0]) procesarComprobante(inp.files[0]); inp.value=''; };
+  $('#compb').onclick=()=>inp.click(); z.addEventListener('click',e=>{ if(e.target.closest('#compc')) inp.click(); }); inp.onchange=()=>{ if(inp.files[0]) procesarComprobante(inp.files[0]); inp.value=''; };
   z.ondragover=e=>{ e.preventDefault(); z.classList.add('drag'); }; z.ondragleave=()=>z.classList.remove('drag');
   z.ondrop=e=>{ e.preventDefault(); z.classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) procesarComprobante(f); };
   pintarChequeos(); if(abrirSelector) inp.click(); }
@@ -182,15 +182,18 @@ async function procesarComprobante(file){
   if(!esImgF(file)&&!esPdfF(file)){ toast('Ese archivo no es una imagen ni un PDF. Subí una foto, una captura o el PDF del comprobante.',true); return; }
   if(file.size>25e6){ toast('El archivo es muy grande (máximo 25 MB).',true); return; }
   const yo=CB; Object.assign(yo,{file,hash:null,datos:null,texto:'',sugerido:null}); const dat=$('#compdat'); if(dat) dat.innerHTML='';
-  const st=t=>{ const e=$('#compst'); if(e&&CB===yo&&yo.file===file) e.innerHTML=t; }; const b=$('#compb'); if(b) b.disabled=true;
+  // fila del archivo, con el estilo de los archivos del cliente: nombre, estado y «Cambiar»
+  const st=(t,listo)=>{ const e=$('#compst'); if(!e||CB!==yo||yo.file!==file) return; e.classList.remove('dn0');
+    e.innerHTML=`${CLIP}<span class="grow"><b>${esc(file.name)}</b><span class="sm muted">${t}</span></span>${listo?'<button class="btn sm" type="button" id="compc">Cambiar</button>':'<span class="spin" aria-hidden="true"></span>'}`; };
+  const b=$('#compb'); if(b) b.hidden=true; st('Leyendo…');
   yo.hash=await hashArchivo(file);
   try{ if(esHeicF(file)){ const j=await aJPG(file,t=>st(esc(t))); if(CB!==yo||yo.file!==file) return; yo.file=file=j; } // se guarda el JPG para poder verlo después
     const r=await leerComprobante(file,t=>st(esc(t))); if(CB!==yo||yo.file!==file||!$('#frm')) return;
     yo.texto=r.texto; yo.datos=r.datos; const hechos=autocompletar(r.datos);
-    st(`<b>${esc(file.name)}</b> · ${hechos.length?'completé '+esc(hechos.join(', '))+'. Revisá antes de guardar.':'no encontré datos para completar, cargalos a mano.'}`);
+    st(hechos.length?'Completé '+esc(hechos.join(', '))+'. Revisá antes de guardar.':'No encontré datos para completar, cargalos a mano.',true);
     const dd=$('#compdat'); if(dd) dd.innerHTML=datosHtml(r.datos)+`<details><summary>Ver texto leído</summary><pre>${esc(r.texto.trim()||'(sin texto)')}</pre></details>`; }
-  catch(e){ st(`<b>${esc(file.name)}</b> · no pude leerlo (${esc(e.message||e)}). Completá los datos a mano: el archivo se guarda igual.`); }
-  finally{ const bb=$('#compb'); if(bb&&CB===yo){ bb.disabled=false; bb.innerHTML=CLIP+' Cambiar comprobante'; } pintarChequeos(); } }
+  catch(e){ st('No pude leerlo ('+esc(e.message||e)+'). Completá los datos a mano: el archivo se guarda igual.',true); }
+  finally{ pintarChequeos(); } }
 
 function autocompletar(d){ const f=$('#frm'); const h=[]; const set=(n,v,t)=>{ if(v!=null&&v!==''&&f.elements[n]){ f.elements[n].value=v; h.push(t); } };
   set('monto',d.monto!=null?fnum(d.monto):null,'monto'); set('fecha',d.fecha,'fecha'); set('operacion',d.operacion,'N° de operación'); set('medio',d.medio,'medio');

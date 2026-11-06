@@ -26,27 +26,28 @@ const ET_CSS=`.et{box-sizing:border-box;border:1px dashed #bbb;padding:2mm 2.5mm
 function etLista(){ const q=sinAc(ET.q).toLowerCase().trim();
   return S.productos.filter(p=>p.activo&&(!ET.cat||p.categoria===ET.cat)&&(!q||sinAc(p.nombre).toLowerCase().includes(q)||p.codigo.toLowerCase().includes(q)||(p.barras||'').includes(q))).sort((a,b)=>a.nombre.localeCompare(b.nombre)); }
 const etTotal=()=>Object.values(ET.sel).reduce((a,n)=>a+n,0);
-function etFilas(){ const l=etLista(); return l.length?l.map(p=>{ const n=ET.sel[p.id]||0; return `<label class="etrow"><input type="checkbox" data-chg="et-chk" data-id="${p.id}" ${n?'checked':''}>
+function etFilas(){ const l=etLista(); return l.length?l.map(p=>{ const n=ET.sel[p.id]||0; return `<label class="etrow${n?' on':''}"><input type="checkbox" data-chg="et-chk" data-id="${p.id}" ${n?'checked':''}>
   <span class="etn"><b>${esc(p.nombre)}</b><span class="sm muted">${esc(p.codigo)}${p.categoria?' · '+esc(p.categoria):''}</span></span><span class="n">${money2(p.precio)}${p.unidad==='kg'?' / kg':''}</span>
   <input class="etc" data-chg="et-cant" data-id="${p.id}" value="${n||1}" inputmode="numeric" aria-label="Copias de ${esc(p.nombre)}" ${n?'':'disabled'}></label>`; }).join(''):vacioHtml('No hay productos con esa búsqueda.'); }
 function etPintar(){ const r=$('#etlist'); if(r) r.innerHTML=etFilas(); etResumen(); }
 function etResumen(){ const t=etTotal(),k=Object.keys(ET.sel).length; const e=$('#etres'); if(e) e.textContent=t?k+' producto'+(k>1?'s':'')+' · '+t+' etiqueta'+(t>1?'s':''):'Elegí los productos'; const b=$('#etprint'); if(b) b.disabled=!t;
-  const pv=$('#etprev'); if(pv){ const ids=Object.keys(ET.sel).slice(0,3); pv.innerHTML=ids.length?ids.map(id=>etiquetaHtml(prod(+id),ET_TAM[ET.tam])).join(''):'<span class="sm muted">La vista previa aparece cuando elegís productos.</span>'; } }
+  const pv=$('#etprev'); if(pv){ const ids=Object.keys(ET.sel).slice(0,3); pv.innerHTML=ids.length?ids.map(id=>etiquetaHtml(prod(+id),ET_TAM[ET.tam])).join('')+(ids.length<k?`<span class="sm muted">y ${k-ids.length} producto${k-ids.length>1?'s':''} más</span>`:''):'<div class="ccvac"><b>Sin productos elegidos</b><span>Marcá los productos de la lista y acá ves cómo quedan las etiquetas.</span></div>'; }
+  const c=$('#etcnt'); if(c){ c.textContent=k; c.hidden=!k; } }
 
 ACT['prod-etiquetas']=()=>{ if(!S.productos.some(p=>p.activo)){ toast('Todavía no hay productos.',true); return; }
-  abrir('Imprimir etiquetas de precio',`<style>${ET_CSS}</style><div class="filters" style="margin:0 0 10px"><label class="field">Buscar<input id="etq" data-live="et-q" value="${esc(ET.q)}" placeholder="Nombre o código"></label>
+  abrir('Imprimir etiquetas de precio',`<style>${ET_CSS}</style><div class="filters" style="margin:0 0 12px"><label class="field">Buscar<span class="srch">${SVG('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>')}<input id="etq" data-live="et-q" value="${esc(ET.q)}" placeholder="Nombre o código"></span></label>
    <label class="field">Categoría<select data-chg="et-cat"><option value="">Todas</option>${opts(cats(),ET.cat)}</select></label>
    <label class="field">Tamaño<select data-chg="et-tam">${opts(Object.entries(ET_TAM).map(([v,o])=>({v,t:o.t})),ET.tam)}</select></label></div>
-   <div class="bar" style="margin-bottom:8px;flex-wrap:wrap;gap:8px"><button class="btn sm" type="button" data-act="et-todos">Elegir los de la lista</button><button class="btn sm" type="button" data-act="et-stock">Solo los que tienen stock</button><button class="btn sm ghost" type="button" data-act="et-ninguno">Ninguno</button>
-   <label class="field inline"><input type="checkbox" data-chg="et-opt" data-k="barras" ${ET.barras?'checked':''}> Código de barras</label><label class="field inline"><input type="checkbox" data-chg="et-opt" data-k="negocio" ${ET.negocio?'checked':''}> Nombre del negocio</label></div>
-   <div class="etgrid"><div class="etlist" id="etlist">${etFilas()}</div><div><div class="sm muted" style="margin-bottom:6px">Vista previa</div><div class="etprev" id="etprev"></div></div></div>`,
+   <div class="etbar"><div class="chips"><button class="chip" type="button" data-act="et-todos">Todos los de la lista</button><button class="chip" type="button" data-act="et-stock">Solo con stock</button><button class="chip" type="button" data-act="et-ninguno">Ninguno</button></div>
+   <div class="etopts"><label><input type="checkbox" data-chg="et-opt" data-k="barras" ${ET.barras?'checked':''}> Código de barras</label><label><input type="checkbox" data-chg="et-opt" data-k="negocio" ${ET.negocio?'checked':''}> Nombre del negocio</label></div></div>
+   <div class="etgrid"><div><div class="eth">Productos<span class="cnt" id="etcnt" hidden></span></div><div class="etlist" id="etlist">${etFilas()}</div></div><div><div class="eth">Vista previa</div><div class="etprev" id="etprev"></div></div></div>`,
    {wide:true,noFocus:true,foot:`<span class="sm muted" id="etres" style="margin-right:auto"></span><button class="btn" data-act="cerrar">Cerrar</button><button class="btn pri" id="etprint" data-act="et-imprimir">Imprimir</button>`});
   etResumen(); if(ET.barras) cargarScript(JSBARCODE).then(etResumen).catch(()=>{}); };
 LIVE['et-q']=el=>{ ET.q=el.value; const r=$('#etlist'); if(r) r.innerHTML=etFilas(); };
 CHG['et-cat']=el=>{ ET.cat=el.value; etPintar(); };
 CHG['et-tam']=el=>{ ET.tam=el.value; etResumen(); };
 CHG['et-opt']=el=>{ ET[el.dataset.k]=el.checked; if(ET.barras) cargarScript(JSBARCODE).then(etResumen).catch(()=>{}); etResumen(); };
-CHG['et-chk']=el=>{ const id=+el.dataset.id, c=el.closest('.etrow').querySelector('.etc'); if(el.checked){ ET.sel[id]=Math.max(1,parseInt(c.value)||1); c.disabled=false; } else { delete ET.sel[id]; c.disabled=true; } etResumen(); };
+CHG['et-chk']=el=>{ const id=+el.dataset.id, row=el.closest('.etrow'), c=row.querySelector('.etc'); row.classList.toggle('on',el.checked); if(el.checked){ ET.sel[id]=Math.max(1,parseInt(c.value)||1); c.disabled=false; } else { delete ET.sel[id]; c.disabled=true; } etResumen(); };
 CHG['et-cant']=el=>{ const id=+el.dataset.id, n=parseInt(el.value); if(!(n>0)||n>500){ toast('Poné entre 1 y 500 copias.',true); el.value=ET.sel[id]||1; return; } ET.sel[id]=n; etResumen(); };
 ACT['et-todos']=()=>{ etLista().forEach(p=>{ if(!ET.sel[p.id]) ET.sel[p.id]=1; }); etPintar(); };
 ACT['et-stock']=()=>{ ET.sel={}; etLista().filter(p=>stockDe(p.id)>0).forEach(p=>ET.sel[p.id]=1); etPintar(); };

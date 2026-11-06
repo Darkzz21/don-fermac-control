@@ -318,7 +318,7 @@ VIEWS.ajustes=function(){ const c=S.config; const ur=c.ultimoRespaldo;
    <label class="field">Largo del PLU<select name="largoPlu">${opts([{v:5,t:'5 dígitos'},{v:4,t:'4 dígitos'}],b.largoPlu)}</select></label>
    <label class="field">La etiqueta trae<select name="valor">${opts([{v:'peso',t:'El peso en gramos'},{v:'precio',t:'El importe a cobrar'}],b.valor)}</select></label>
    <label class="field">Decimales del importe<select name="decimales">${opts([{v:0,t:'Sin decimales ($ 1234)'},{v:1,t:'1 decimal ($ 123,4)'},{v:2,t:'2 decimales ($ 12,34)'}],b.decimales)}</select></label>
-   <label class="field full">Probar con un código<input id="balt" data-live="bal-test" placeholder="Escaneá o escribí el código de una etiqueta" inputmode="numeric"><span id="balr" class="sm" style="font-weight:400"></span></label></form>
+   <label class="field full">Probar con un código<input id="balt" data-live="bal-test" placeholder="Escaneá o escribí el código de una etiqueta" inputmode="numeric"></label><div id="balr" class="chk full"></div></form>
    <div class="bar" style="margin-top:12px"><button class="btn pri" data-act="bal-guardar">Guardar balanza</button></div></div>`; })()}
   <div class="grid g2"><div class="card"><h2>Respaldo</h2><p class="sm muted" style="margin-top:0">Tus datos se guardan en este navegador. Si borrás los datos del navegador o cambiás de computadora se pierden, por eso hay que respaldarlos seguido. ${(()=>{ const n=adjUsados().size; return n?'El respaldo incluye los <b>'+n+' archivo'+(n>1?'s':'')+'</b> adjuntos (comprobantes y archivos de clientes). ':''; })()}${ur?'Último respaldo: <b>'+fechaTxt(ur)+'</b>.':'<b>Todavía no hiciste ninguno.</b>'}</p>
    <div class="bar"><button class="btn pri" data-act="resp-exp">Descargar respaldo</button><label class="btn">Restaurar respaldo<input type="file" id="respf" accept=".json" hidden></label></div></div>
@@ -333,9 +333,10 @@ function leerBal(){ const f=$('#bal').elements; return {on:f.on.checked,prefijos
 ACT['bal-guardar']=()=>{ const b=leerBal(); if(!/^\d{2}(\s*,\s*\d{2})*$/.test(b.prefijos)){ toast('Los prefijos tienen que ser de 2 dígitos, separados por coma (por ejemplo 20, 21).',true); return; } S.config.balanza=b; guardar(); toast('Balanza guardada'); LIVE['bal-test'](); };
 LIVE['bal-test']=()=>{ const t=$('#balt'),r=$('#balr'); if(!t||!r) return; const v=t.value.replace(/\D/g,''); if(!v){ r.textContent=''; return; }
   const prev=S.config.balanza; S.config.balanza=Object.assign(leerBal(),{on:true}); let e; try{ e=leerEtiquetaBalanza(v); }finally{ S.config.balanza=prev; }
-  if(v.length!==13){ r.innerHTML='<span class="muted">El código tiene que tener 13 dígitos ('+v.length+').</span>'; return; }
-  if(!e){ r.innerHTML='<span class="dn">No empieza con ninguno de los prefijos configurados.</span>'; return; }
-  r.innerHTML=`${e.ok?'':'<span class="dn">El dígito verificador no coincide. </span>'}PLU <b>${esc(e.plu)}</b> → ${e.p?'<b>'+esc(e.p.nombre)+'</b>':'<span class="dn">ningún producto tiene ese PLU</span>'} · ${e.valor==='peso'?'peso <b>'+qtyTxt({unidad:'kg'},e.kg)+'</b>':'importe <b>'+money2(e.importe)+'</b>'+(e.kg!=null?' = '+qtyTxt({unidad:'kg'},e.kg):'')}`; };
+  if(v.length!==13){ r.innerHTML='<div class="info">El código tiene que tener 13 dígitos (lleva '+v.length+').</div>'; return; }
+  if(!e){ r.innerHTML='<div class="bad">No empieza con ninguno de los prefijos configurados.</div>'; return; }
+  const k=!e.ok?'bad':e.p?'good':'warn';
+  r.innerHTML=`<div class="${k}">${e.ok?'':'El dígito verificador no coincide: revisá el código. '}PLU <b>${esc(e.plu)}</b> → ${e.p?'<b>'+esc(e.p.nombre)+'</b>':'ningún producto tiene ese PLU'} · ${e.valor==='peso'?'peso <b>'+qtyTxt({unidad:'kg'},e.kg)+'</b>':'importe <b>'+money2(e.importe)+'</b>'+(e.kg!=null?' = '+qtyTxt({unidad:'kg'},e.kg):'')}</div>`; };
 ACT['logo-reset']=()=>{ S.config.logo=''; guardar(); pintarMarco(); toast('Logo quitado'); };
 ACT['resp-exp']=async el=>{ if(el) el.disabled=true; const hay=adjUsados().size; if(hay) toast('Preparando el respaldo con '+hay+' archivo'+(hay>1?'s':'')+'…');
   let r; try{ r=await exportarConArchivos(); }catch(e){ r={txt:exportarJSON(),n:0,error:true}; } if(el) el.disabled=false;
