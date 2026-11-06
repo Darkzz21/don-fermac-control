@@ -142,7 +142,7 @@ VIEWS.ventas=function(){
   const bComp=`<button class="btn sm tabact" data-act="venta-comp">${typeof CLIP!=='undefined'?CLIP:''} Cargar venta con comprobante</button>`;
   const tb=`<div class="tabbar">${t}${bComp}</div>`;
   if(UI.ventasTab==='historial'){ const f=UI.f.hist; return `${encab('Ventas')}${tb}
-    <div class="filters"><label class="field">Buscar<input data-bind="f.hist.q" value="${esc(f.q)}" placeholder="N°, cliente o medio de pago"></label><label class="field">Desde<input type="date" data-bind="f.hist.desde" value="${esc(f.desde)}"></label><label class="field">Hasta<input type="date" data-bind="f.hist.hasta" value="${esc(f.hasta)}"></label></div><div id="res"></div>`; }
+    <div class="filters"><label class="field">Buscar<span class="srch">${SVG(LUPA_D)}<input data-bind="f.hist.q" value="${esc(f.q)}" placeholder="N°, cliente o medio de pago"></span></label><label class="field">Desde<input type="date" data-bind="f.hist.desde" value="${esc(f.desde)}"></label><label class="field">Hasta<input type="date" data-bind="f.hist.hasta" value="${esc(f.hasta)}"></label></div><div id="res"></div>`; }
   const f=UI.f.pos;
   return `${encab('Ventas')}${tb}
   <div class="pos"><div class="grid" style="gap:10px"><label class="field">Buscar producto<span class="srch"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M16 8v8"/></svg><input id="posq" data-bind="f.pos.q" data-key="pos-enter" value="${esc(f.q)}" placeholder="Buscá por nombre o código, o escaneá el código de barras" autocomplete="off"></span></label>
@@ -186,6 +186,7 @@ function pedirPeso(p){ abrir('Peso de '+p.nombre,`<p class="sm muted" style="mar
   <label class="field">Otro peso en gramos<input id="peso" inputmode="decimal" data-key="peso-enter" data-id="${p.id}" placeholder="Por ejemplo 350"></label>`,{foot:`<button class="btn" data-act="cerrar">Cancelar</button><button class="btn pri" data-act="peso-ok" data-id="${p.id}" data-g="">Agregar</button>`}); }
 ACT['peso-enter']=el=>ACT['peso-ok']({dataset:{id:el.dataset.id,g:''}});
 ACT['peso-ok']=function(el){ let g=el.dataset.g; if(g==='') { const v=num($('#peso').value); if(!v||v<=0){ toast('Ingresá el peso en gramos.',true); return; } g=v; } cerrar(); addCart(+el.dataset.id,r3(+g/1000)); };
+const LUPA_D='<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>';
 const SVG=d=>`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const PAYI={'Efectivo':SVG('<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>'),
   'Transferencia':SVG('<path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>'),
@@ -268,7 +269,7 @@ ACT['venta-anular']=el=>{ const id=+el.dataset.id; confirmar('¿Anular la venta 
 VIEWS.caja=function(){
   const f=UI.caja.fecha||(UI.caja.fecha=hoy()); const r=resumenCaja(f); const efectivoTotal=r.por['Efectivo'];
   const cj=r.cierre; const hist=S.cajas.slice().sort((a,b)=>a.fecha<b.fecha?1:-1).slice(0,8);
-  return `${encab('Caja','Resumen del día y cierre de caja',`<label class="field inline">Día <input type="date" id="cjf" value="${f}" data-chg="caja-fecha"></label>`)}
+  return `${encab('Caja','',`<label class="ccper">Día <input type="date" id="cjf" value="${f}" data-chg="caja-fecha"></label>`)}
   <div class="kpis"><div class="kpi"><div class="k">Ventas del día</div><div class="v">${money(r.totalVentas)}</div><div class="d">${r.vs.length} venta${r.vs.length===1?'':'s'}</div></div>
    <div class="kpi"><div class="k">Efectivo esperado</div><div class="v">${money(r.esperado)}</div><div class="d">lo que debería haber en el cajón</div></div>
    <div class="kpi ${cj?(cj.dif===0?'good':'bad'):''}"><div class="k">${cj?'Diferencia del cierre':'Cierre'}</div><div class="v">${cj?money(cj.dif):'Abierta'}</div><div class="d">${cj?'contado '+money(cj.contado):'todavía sin cerrar'}</div></div></div>
