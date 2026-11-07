@@ -1,0 +1,49 @@
+# Publica en GitHub Pages: la landing (Astro, carpeta landing/) en la raíz y la app tal cual en /app.
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - name: Compilar la landing
+        working-directory: landing
+        run: |
+          npm ci
+          npm run build
+      - name: Sumar la app en /app
+        run: |
+          mkdir -p landing/dist/app
+          cp *.html *.js *.css *.svg *.png *.webmanifest landing/dist/app/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: landing/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

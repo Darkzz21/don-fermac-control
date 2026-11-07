@@ -1,0 +1,260 @@
+---
+import { Image } from 'astro:assets';
+import '../styles/landing.css';
+import panel from '../assets/panel.png';
+import ventas from '../assets/ventas.png';
+import cuenta from '../assets/cuenta.png';
+import reportes from '../assets/reportes.png';
+import mVentas from '../assets/m-ventas.png';
+import mPanel from '../assets/m-panel.png';
+
+const APP = '/app/';
+const titulo = 'Gestia · Ventas, stock y cuentas corrientes para tu comercio';
+const desc = 'Vendé, cobrá, controlá el stock y llevá el fiado desde la compu o el celular. Sin instalar nada y funciona aunque se corte internet.';
+
+// íconos: los mismos trazos que usa la app
+const I = {
+  ventas: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6"/>',
+  clientes: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 5a3 3 0 0 1 0 6M18 14.5c1.8.7 3 2.3 3 5.5"/>',
+  clip: '<path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 7.6"/>',
+  productos: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  compras: '<path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+  caja: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  reportes: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  etiqueta: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.6"/>',
+  gastos: '<path d="M12 3v18M17 7.5c-.6-1.5-2.4-2.5-5-2.5-3 0-4.5 1.3-4.5 3s1.5 2.5 4.5 3 4.5 1.3 4.5 3-1.6 3-4.5 3c-2.6 0-4.4-1-5-2.5"/>',
+  nube: '<path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8.5a4.3 4.3 0 0 1-.5 9.5z"/><path d="M3 3l18 18"/>',
+  candado: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  celu: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
+  rayo: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  flecha: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+};
+
+const funciones = [
+  ['ventas', 'Ventas en segundos', 'Por unidad o por peso, con lector de código de barras, varios medios de pago y cálculo del vuelto.'],
+  ['clientes', 'Fiado bajo control', 'Cuenta corriente por cliente con cierres por período, resumen por WhatsApp y exportación a Excel.'],
+  ['clip', 'Comprobantes que se cargan solos', 'Subís el PDF o la foto de la transferencia y Gestia lee el monto, la fecha y quién pagó.'],
+  ['productos', 'Stock siempre al día', 'Avisos de stock bajo y de vencimientos por lote, recuentos y actualización de precios masiva.'],
+  ['compras', 'Compras y proveedores', 'Registrá lo que entra con su costo real y armá el pedido de reposición con un clic.'],
+  ['caja', 'Caja del día', 'Cuánto entró por cada medio de pago y el cierre de caja sin hacer cuentas a mano.'],
+  ['reportes', 'Números claros', 'Ganancia real después de gastos, lo más vendido y cuánta plata tenés parada en stock.'],
+  ['etiqueta', 'Etiquetas de precio', 'Imprimí etiquetas de góndola con código de barras, en hoja A4 o en rollo.'],
+  ['gastos', 'Gastos del negocio', 'Alquiler, servicios y sueldos, para saber cuánto ganás de verdad.'],
+];
+
+const rubros = ['Almacenes', 'Fiambrerías', 'Dietéticas', 'Kioscos', 'Verdulerías', 'Carnicerías', 'Ferreterías', 'Librerías', 'Pet shops', 'Panaderías', 'Bazares', 'Distribuidoras'];
+
+const ventajas = [
+  ['rayo', 'Sin instalar nada', 'Se abre en el navegador. En el celular la podés agregar a la pantalla de inicio como una app.'],
+  ['nube', 'Anda sin internet', 'Si se corta la conexión seguís vendiendo. No dependés del wifi del local.'],
+  ['candado', 'Tus datos son tuyos', 'Quedan guardados en tu equipo, y con un clic hacés una copia de respaldo.'],
+  ['celu', 'Compu, tablet o celular', 'La misma app se adapta a cualquier pantalla, con menú y botones pensados para el dedo.'],
+];
+
+const preguntas = [
+  ['¿Tengo que instalar algo?', 'No. Gestia funciona en el navegador de la compu, la tablet o el celular. Si querés, la agregás a la pantalla de inicio y se abre como cualquier app.'],
+  ['¿Qué pasa si se corta internet?', 'Seguís trabajando normalmente. La app queda guardada en el equipo y no necesita conexión para vender, cobrar o cargar stock.'],
+  ['¿Dónde quedan mis datos?', 'En tu propio equipo, no en un servidor de terceros. Desde Ajustes descargás una copia de respaldo cuando quieras y la podés pasar a otro equipo.'],
+  ['¿Sirve para mi rubro?', 'Si vendés productos por unidad o por peso, llevás stock y tenés clientes que te compran a cuenta, Gestia te sirve.'],
+  ['¿Puedo probarla antes?', 'Sí. Abrila y vas a ver un comercio de ejemplo con productos, ventas y clientes cargados para que pruebes todo sin miedo.'],
+];
+const svg = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{titulo}</title>
+  <meta name="description" content={desc}>
+  <meta name="theme-color" content="#0B2E33">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://appgestia.github.io/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content={titulo}>
+  <meta property="og:description" content={desc}>
+  <meta property="og:url" content="https://appgestia.github.io/">
+  <meta property="og:locale" content="es_AR">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap navin">
+      <a class="marca" href="/" aria-label="Gestia, inicio"><img src="/favicon.svg" alt="" width="32" height="32"><b>gestia</b></a>
+      <nav aria-label="Secciones">
+        <a href="#funciones">Funciones</a>
+        <a href="#ventajas">Ventajas</a>
+        <a href="#precio">Precio</a>
+        <a href="#preguntas">Preguntas</a>
+      </nav>
+      <a class="btn pri sm" href={APP}>Probala gratis</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap heroin">
+        <div class="herotxt">
+          <p class="eyebrow">Sistema de gestión para comercios</p>
+          <h1>Dejá el cuaderno.<br><span>Tu comercio, en orden.</span></h1>
+          <p class="lead">Vendé, cobrá, controlá el stock y llevá el fiado desde la compu o el celular. Sin instalar nada y aunque se corte internet.</p>
+          <div class="ctas">
+            <a class="btn pri lg" href={APP}>Probala gratis <Fragment set:html={svg(I.flecha)} /></a>
+            <a class="btn ghost lg" href="#funciones">Ver qué hace</a>
+          </div>
+          <p class="nota"><Fragment set:html={svg(I.check)} /> Abre con un comercio de ejemplo. No hace falta registrarse.</p>
+        </div>
+        <div class="herovis" aria-hidden="true">
+          <div class="pc"><div class="pcbar"><i></i><i></i><i></i></div><Image src={panel} alt="" widths={[720, 1280, 1920]} sizes="(max-width: 980px) 92vw, 640px" loading="eager" /></div>
+          <div class="cel"><Image src={mVentas} alt="" widths={[260, 390]} sizes="200px" loading="eager" /></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rubros" aria-label="Rubros">
+      <div class="wrap">
+        <p>Pensado para comercios de todos los días</p>
+        <ul>{rubros.map(r => <li>{r}</li>)}</ul>
+      </div>
+    </section>
+
+    <section id="funciones" class="sec">
+      <div class="wrap">
+        <div class="tit rv">
+          <p class="eyebrow">Funciones</p>
+          <h2>Todo lo que pasa en el mostrador, en un solo lugar</h2>
+          <p>Desde la primera venta del día hasta el cierre de caja, sin planillas sueltas ni papelitos.</p>
+        </div>
+        <div class="fgrid">
+          {funciones.map(([ic, t, d]) => (
+            <article class="fcard rv"><span class="fic" set:html={svg(I[ic as keyof typeof I])} /><h3>{t}</h3><p>{d}</p></article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="sec alt">
+      <div class="wrap show rv">
+        <div class="showtxt">
+          <p class="eyebrow">Vender</p>
+          <h2>Cobrá rápido, aunque haya cola</h2>
+          <ul class="lista">
+            <li><Fragment set:html={svg(I.check)} />Tocás el producto o escaneás el código, y listo.</li>
+            <li><Fragment set:html={svg(I.check)} />Para lo que va por peso, elegís 100 g, 250 g o lo que pese.</li>
+            <li><Fragment set:html={svg(I.check)} />Efectivo, transferencia, débito, crédito, Mercado Pago o a cuenta.</li>
+            <li><Fragment set:html={svg(I.check)} />Avisa cuando algo se está por agotar.</li>
+          </ul>
+        </div>
+        <div class="shot"><Image src={ventas} alt="Pantalla de ventas de Gestia con productos y el detalle de la venta" widths={[720, 1280, 1920]} sizes="(max-width: 980px) 92vw, 620px" /></div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <div class="wrap show inv rv">
+        <div class="showtxt">
+          <p class="eyebrow">Cuenta corriente</p>
+          <h2>Sabé quién te debe y cuánto, sin buscar en el cuaderno</h2>
+          <ul class="lista">
+            <li><Fragment set:html={svg(I.check)} />Saldo de cada cliente con sus compras y pagos.</li>
+            <li><Fragment set:html={svg(I.check)} />Cierres por semana, quincena o mes, como trabajes vos.</li>
+            <li><Fragment set:html={svg(I.check)} />Le mandás el resumen por WhatsApp en un clic.</li>
+            <li><Fragment set:html={svg(I.check)} />Subís el comprobante de la transferencia y el pago se carga solo.</li>
+          </ul>
+        </div>
+        <div class="shot"><Image src={cuenta} alt="Cuenta corriente de un cliente en Gestia con saldo, pagos y movimientos" widths={[720, 1280, 1920]} sizes="(max-width: 980px) 92vw, 620px" /></div>
+      </div>
+    </section>
+
+    <section class="sec alt">
+      <div class="wrap show rv">
+        <div class="showtxt">
+          <p class="eyebrow">Reportes</p>
+          <h2>Números que se entienden</h2>
+          <ul class="lista">
+            <li><Fragment set:html={svg(I.check)} />Ventas, costo y ganancia real del período que elijas.</li>
+            <li><Fragment set:html={svg(I.check)} />Qué productos te dejan más y cuáles no rotan.</li>
+            <li><Fragment set:html={svg(I.check)} />Cuánta plata tenés parada en mercadería.</li>
+          </ul>
+        </div>
+        <div class="shot"><Image src={reportes} alt="Reportes de Gestia con indicadores de ventas y rentabilidad" widths={[720, 1280, 1920]} sizes="(max-width: 980px) 92vw, 620px" /></div>
+      </div>
+    </section>
+
+    <section class="sec movil">
+      <div class="wrap show inv rv">
+        <div class="showtxt">
+          <p class="eyebrow">En el celular</p>
+          <h2>Tu negocio en el bolsillo</h2>
+          <p>Mirá cómo viene el día, cargá una venta o revisá el stock desde el celular, con botones grandes y el menú a mano.</p>
+        </div>
+        <div class="celes">
+          <div class="cel"><Image src={mPanel} alt="Panel de Gestia en el celular" widths={[260, 390, 780]} sizes="240px" /></div>
+          <div class="cel"><Image src={mVentas} alt="Venta en curso en Gestia desde el celular" widths={[260, 390, 780]} sizes="240px" /></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ventajas" class="sec">
+      <div class="wrap">
+        <div class="tit rv">
+          <p class="eyebrow">Ventajas</p>
+          <h2>Simple de usar, desde el primer día</h2>
+        </div>
+        <div class="vgrid">
+          {ventajas.map(([ic, t, d]) => (
+            <article class="vcard rv"><span class="fic" set:html={svg(I[ic as keyof typeof I])} /><h3>{t}</h3><p>{d}</p></article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="precio" class="sec precio">
+      <div class="wrap">
+        <div class="pcard rv">
+          <div>
+            <p class="eyebrow">Precio</p>
+            <h2>Consultanos</h2>
+            <p>Armamos el precio según tu comercio. Mientras tanto, probá Gestia gratis con un comercio de ejemplo y fijate si es lo que buscás.</p>
+          </div>
+          <a class="btn mint lg" href={APP}>Probala gratis <Fragment set:html={svg(I.flecha)} /></a>
+        </div>
+      </div>
+    </section>
+
+    <section id="preguntas" class="sec">
+      <div class="wrap faq">
+        <div class="tit rv"><p class="eyebrow">Preguntas frecuentes</p><h2>Lo que suelen preguntarnos</h2></div>
+        <div class="faqs">
+          {preguntas.map(([q, a], i) => (
+            <details class="rv" open={i === 0}><summary>{q}</summary><p>{a}</p></details>
+          ))}
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <div class="wrap piein">
+      <a class="marca" href="/"><img src="/favicon.svg" alt="" width="28" height="28"><b>gestia</b></a>
+      <p>Ventas, stock, caja y clientes para tu comercio.</p>
+      <a href={APP}>Abrir la app</a>
+    </div>
+  </footer>
+
+  <script>
+    // aparición suave al bajar; sin animación si el sistema pide reducir movimiento
+    const els = document.querySelectorAll('.rv');
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {
+      els.forEach(e => e.classList.add('in'));
+    } else {
+      const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+      els.forEach(e => io.observe(e));
+    }
+    // si quedó registrado el service worker viejo de la app en la raíz, lo da de baja
+    navigator.serviceWorker?.getRegistrations().then(rs => rs.forEach(r => { if (new URL(r.scope).pathname === '/') r.unregister(); }));
+  </script>
+</body>
+</html>
