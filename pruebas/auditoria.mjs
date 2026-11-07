@@ -144,6 +144,44 @@ await prueba('no se pasa a "por unidad" un producto con kilos con decimales', as
     return { unidad: pr.unidad, err: (document.querySelector('#err') || {}).textContent }; });
   anota('no se pasa a "por unidad" un producto con kilos con decimales', r.unidad === 'kg' && !!r.err, JSON.stringify(r)); });
 
+console.log('\nCorregir errores de carga');
+await prueba('el carrito sigue ahí después de recargar', async p => {
+  await ev(p, k => { location.hash = 'ventas'; UI.vista = 'ventas'; render(); const pr = eval(k)(); UI.cart.items = [{ productoId: pr.id, cant: 2, precio: pr.precio }]; UI.cart.medio = 'Transferencia'; renderCart(); }, unidad.toString());
+  await p.reload({ waitUntil: 'networkidle0' }); await espera(200);
+  const r = await ev(p, () => ({ items: UI.cart.items.length, cant: (UI.cart.items[0] || {}).cant, medio: UI.cart.medio }));
+  anota('el carrito sigue ahí después de recargar', r.items === 1 && r.cant === 2 && r.medio === 'Transferencia', JSON.stringify(r)); });
+await prueba('un retiro de caja cargado por error se puede borrar', async p => {
+  const r = await ev(p, () => { UI.caja.fecha = hoy(); S.cajaMov.push({ id: sig('W'), fecha: hoy(), tipo: 'Retiro', monto: 999, motivo: 'error' }); UI.vista = 'caja'; render();
+    const b = document.querySelector('[data-act="caja-mov-del"]'); if (!b) return { boton: false }; b.click(); document.querySelector('#yes').click(); return { boton: true, borrado: !S.cajaMov.some(m => m.monto === 999) }; });
+  anota('un retiro de caja cargado por error se puede borrar', r.boton && r.borrado, JSON.stringify(r)); });
+await prueba('un gasto con fecha futura pide confirmación', async p => {
+  const r = await ev(p, () => { gastoForm(null); const f = document.querySelector('#frm'); f.elements.fecha.value = '2099-01-01'; f.elements.concepto.value = 'x'; f.elements.monto.value = '10';
+    document.querySelector('#okb').click(); const primero = S.gastos.some(g => g.fecha === '2099-01-01'); const aviso = document.querySelector('#err').textContent;
+    document.querySelector('#okb').click(); return { primero, aviso, segundo: S.gastos.some(g => g.fecha === '2099-01-01') }; });
+  anota('un gasto con fecha futura pide confirmación', !r.primero && /posterior/.test(r.aviso) && r.segundo, JSON.stringify(r)); });
+await prueba('clientes: sin historial se borran, con historial se archivan', async p => {
+  const r = await ev(p, () => { const nuevo = { id: sig('Q'), nombre: 'Cliente sin nada', telefono: '', creado: hoy() }; S.clientes.push(nuevo); indexar();
+    ACT['cli-del']({ dataset: { id: nuevo.id } }); document.querySelector('#yes').click(); const borrado = !S.clientes.some(c => c.id === nuevo.id);
+    const conDeuda = S.clientes.find(c => saldoCliente(c.id) > 0); const ventas = S.ventas.filter(v => v.clienteId === conDeuda.id).length;
+    ACT['cli-del']({ dataset: { id: conDeuda.id } }); const aviso = /Todavía debe/.test(document.querySelector('#ov').textContent); document.querySelector('#yes').click();
+    UI.vista = 'ventas'; UI.ventasTab = 'cc'; render(); const sigueEnCC = !!document.querySelector(`[data-act="ccv-sel"][data-id="${conDeuda.id}"]`); renderCart();
+    const enVenta = [...document.querySelectorAll('[data-chg="cart-cli"] option')].some(o => +o.value === conDeuda.id);
+    return { borrado, archivado: !!conDeuda.archivado, aviso, ventasIntactas: S.ventas.filter(v => v.clienteId === conDeuda.id).length === ventas, sigueEnCC, enVenta }; });
+  anota('clientes: sin historial se borran, con historial se archivan', r.borrado && r.archivado && r.aviso && r.ventasIntactas && r.sigueEnCC && !r.enVenta, JSON.stringify(r)); });
+await prueba('corregir una compra la reemplaza y recalcula el stock', async p => {
+  const r = await ev(p, () => { const pr = S.productos.find(x => x.unidad === 'u'); const s0 = stockDe(pr.id);
+    const id = crearCompra({ fecha: hoy(), proveedorId: S.proveedores[0].id, pago: 'Efectivo', ivaPct: 0, ivaRec: true, items: [{ productoId: pr.id, cant: 10, costo: 100 }] }); indexar();
+    ACT['compra-corregir']({ dataset: { id } }); const fila = document.querySelector('[data-k="cant"]'); fila.value = '4'; fila.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('#cmpok').click(); indexar(); const orig = S.compras.find(c => c.id === id), nueva = S.compras.find(c => c.id === orig.corregidaPor);
+    return { anulada: orig.estado === 'Anulada', nueva: !!nueva && nueva.corrige === id, stock: stockDe(pr.id) - s0 }; });
+  anota('corregir una compra la reemplaza y recalcula el stock', r.anulada && r.nueva && r.stock === 4, JSON.stringify(r)); });
+await prueba('cambiar el medio de pago de una venta', async p => {
+  const r = await ev(p, k => { const pr = eval(k)(); const v = crearVenta({ items: [{ productoId: pr.id, cant: 1, precio: pr.precio }], medio: 'Efectivo' }); const c = S.clientes[0]; const s0 = saldoCliente(c.id);
+    ACT['venta-medio']({ dataset: { id: v.id } }); const f = document.querySelector('#frm'); f.elements.medio.value = 'Cuenta corriente'; document.querySelector('#okb').click();
+    const sinCliente = /elegí el cliente/.test(document.querySelector('#err').textContent); f.elements.cliente.value = String(c.id); document.querySelector('#okb').click();
+    return { sinCliente, medio: v.medio, deuda: r2(saldoCliente(c.id) - s0) === v.total, registro: (v.cambiosMedio || []).length }; }, unidad.toString());
+  anota('cambiar el medio de pago de una venta', r.sinCliente && r.medio === 'Cuenta corriente' && r.deuda && r.registro === 1, JSON.stringify(r)); });
+
 console.log('\nSeguridad');
 await prueba('nombres con código HTML no se ejecutan', async p => {
   await ev(p, () => { window.__x = 0; const n = '<img src=x onerror="window.__x++">"\'&'; guardarProducto({ nombre: n, categoria: n, unidad: 'u', costo: 1, precio: 2, minimo: 5, notas: n }, null);
