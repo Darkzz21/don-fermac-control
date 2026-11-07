@@ -361,6 +361,20 @@ document.addEventListener('change',e=>{ const el=e.target;
 window.addEventListener('hashchange',()=>{ const v=location.hash.slice(1); if(VIEWS[v]){ UI.vista=v; render(); } });
 // arranca cuando ya se cargaron todos los scripts (comprobantes, etiquetas, archivos)
 document.addEventListener('DOMContentLoaded',function arrancar(){
-  S=cargar(); if(S){ S=Object.assign(vacio(),S); S.config=Object.assign(vacio().config,S.config); if(S.config.logo==='logo.png') S.config.logo=''; indexar(); } else cargarDemo();
+  const c=cargar();
+  if(c.o){ S=prepararEstado(c.o); indexar(); }
+  else if(c.raw) S=datosDanados(c.raw); // hay datos guardados que no se pueden leer: no se pisan
+  else cargarDemo();
   const v=location.hash.slice(1); if(VIEWS[v]) UI.vista=v;
-  pintarMarco(); render(); });
+  pintarMarco(); render(); if(c.raw) avisoDanados(); });
+// Datos guardados que no se pueden leer: se copian aparte y se arranca vacío sin borrar nada.
+// Si no hay lugar para la copia, no se guarda nada hasta descargarla.
+let _danado=null;
+function datosDanados(raw){ _danado={raw,clave:LS_KEY+'_danado_'+hoy()};
+  try{ localStorage.setItem(_danado.clave,raw); _danado.copia=true; }catch(e){ _danado.copia=false; BLOQUEO=true; }
+  const s=vacio(); S=s; indexar(); return s; }
+function avisoDanados(){ abrir('No pude leer tus datos',`<p style="margin-top:0">Los datos guardados en este navegador están dañados y no se pueden abrir. <b>No borré nada:</b> ${_danado.copia?'guardé una copia aparte':'todavía no pude guardar una copia, así que <b>no se va a guardar nada</b> hasta que la descargues'}.</p>
+  <p>Para seguir trabajando, restaurá tu último respaldo desde <b>Ajustes → Restaurar respaldo</b>. Descargá también la copia de los datos dañados: con ella se pueden intentar recuperar.</p>`,
+  {foot:`<button class="btn" id="dnd">Descargar copia dañada</button><button class="btn pri" data-act="go" data-v="ajustes" id="dnaj">Ir a Ajustes</button>`});
+  $('#dnd').onclick=async()=>{ await descargar('datos_danados_'+hoy()+'.json',_danado.raw); if(BLOQUEO){ BLOQUEO=false; guardar(); toast('Copia descargada. Ya se vuelve a guardar.'); } };
+  $('#dnaj').addEventListener('click',()=>cerrar()); }

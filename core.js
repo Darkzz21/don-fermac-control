@@ -47,12 +47,20 @@ function vacio(){
       balanza:{on:false,prefijos:'20',largoPlu:5,valor:'peso',decimales:0}},
     seq:{},productos:[],proveedores:[],catalogo:[],historial:[],lotes:[],movimientos:[],compras:[],ventas:[],clientes:[],cobros:[],ajustesCC:[],archivos:[],gastos:[],cajas:[],cajaMov:[]};
 }
-let _t=null;
-function guardar(){ clearTimeout(_t); _t=setTimeout(()=>{ try{ localStorage.setItem(LS_KEY,JSON.stringify(S)); S._guardadoOk=true; }catch(e){ S._guardadoOk=false; } },250); }
-function cargar(){
-  try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.v===1) return o; } }catch(e){}
-  return null;
-}
+// Se guarda apenas termina la acción en curso (varios cambios seguidos se escriben una sola vez).
+// Antes esperaba 250 ms y, si se cerraba la pestaña en ese momento, la venta se perdía.
+let _pend=false, BLOQUEO=false; // BLOQUEO: no se escribe nada (datos dañados que todavía no se pudieron copiar)
+function escribir(){ _pend=false; if(BLOQUEO||!S) return false;
+  try{ const o=Object.assign({},S); delete o._guardadoOk; localStorage.setItem(LS_KEY,JSON.stringify(o)); S._guardadoOk=true; }
+  catch(e){ S._guardadoOk=false; }
+  if(typeof avisoGuardado==='function') avisoGuardado(S._guardadoOk); return S._guardadoOk; }
+function guardar(){ if(_pend) return; _pend=true; queueMicrotask(escribir); }
+addEventListener('pagehide',()=>{ if(_pend) escribir(); });
+// Devuelve {o} con los datos, {raw} si hay algo guardado que no se puede leer, o {} si no hay nada.
+function cargar(){ let raw=null; try{ raw=localStorage.getItem(LS_KEY); }catch(e){ return {}; } if(!raw) return {};
+  try{ const o=JSON.parse(raw); if(o&&o.v===1&&Array.isArray(o.productos)) return {o}; }catch(e){}
+  return {raw}; }
+function prepararEstado(o){ const s=Object.assign(vacio(),o); s.config=Object.assign(vacio().config,o.config); delete s._guardadoOk; if(s.config.logo==='logo.png') s.config.logo=''; return s; }
 function indexar(){
   IDX.stock={};IDX.prod={};IDX.prov={};IDX.cli={};
   S.productos.forEach(p=>IDX.prod[p.id]=p);
