@@ -117,6 +117,33 @@ await prueba('un cobro cargado por error se puede borrar', async p => {
     return { boton: true, borrado: !S.cobros.some(x => x.id === c.id), saldo: saldoCliente(c.clienteId) === saldo0 + c.monto }; });
   anota('un cobro cargado por error se puede borrar', r.boton && r.borrado && r.saldo, JSON.stringify(r)); });
 
+console.log('\nCaja, compras y ventas');
+await prueba('caja: la apertura suma el efectivo de un día sin cerrar', async p => {
+  const r = await ev(p, () => { S.cajas = [{ fecha: addDias(hoy(), -2), apertura: 1000, esperado: 1000, contado: 1000, dif: 0, notas: '' }];
+    S.cajaMov = [{ id: sig('W'), fecha: addDias(hoy(), -1), tipo: 'Ingreso', monto: 5000, motivo: 'prueba' }];
+    const ayer = addDias(hoy(), -1); const efAyer = flujoEfectivo(ayer); return { apertura: resumenCaja(hoy()).apertura, esperada: r2(1000 + efAyer) }; });
+  anota('caja: la apertura suma el efectivo de un día sin cerrar', r.apertura === r.esperada && r.apertura >= 6000, JSON.stringify(r)); });
+await prueba('anular una compra ya vendida avisa del stock negativo', async p => {
+  const r = await ev(p, () => { const pr = S.productos.find(x => x.unidad === 'u');
+    const id = crearCompra({ fecha: hoy(), proveedorId: S.proveedores[0].id, pago: 'Efectivo', ivaPct: 0, ivaRec: true, items: [{ productoId: pr.id, cant: 5, costo: 100 }] }); indexar();
+    crearVenta({ items: [{ productoId: pr.id, cant: stockDe(pr.id), precio: pr.precio }], medio: 'Efectivo' }); indexar();
+    ACT['compra-anular']({ dataset: { id } }); return document.querySelector('#ov').textContent; });
+  anota('anular una compra ya vendida avisa del stock negativo', /ya se vendió/.test(r), r.slice(0, 120)); });
+await prueba('no deja cobrar en efectivo con menos plata que el total', async p => {
+  const r = await ev(p, k => { UI.vista = 'ventas'; render(); const pr = eval(k)(); UI.cart.items = [{ productoId: pr.id, cant: 1, precio: pr.precio }]; UI.cart.medio = 'Efectivo'; UI.cart.recibido = '10'; renderCart();
+    const n = S.ventas.length; ACT.cobrar(); const bloq = S.ventas.length === n; UI.cart.recibido = ''; ACT.cobrar(); return { bloq, sinRecibido: S.ventas.length === n + 1 }; }, unidad.toString());
+  anota('no deja cobrar en efectivo con menos plata que el total', r.bloq && r.sinRecibido, JSON.stringify(r)); });
+await prueba('escanear un código que no existe avisa', async p => {
+  const r = await ev(p, () => { UI.vista = 'ventas'; render(); UI.f.pos.q = '7790000000000'; ACT['pos-enter'](); return (document.querySelector('#toast') || {}).textContent || ''; });
+  anota('escanear un código que no existe avisa', /no está cargado/.test(r), r || 'sin aviso'); });
+await prueba('no se crean productos repetidos por mayúsculas, tildes o espacios', async p => {
+  const r = await ev(p, () => { const n = S.productos[0].nombre; const out = []; for (const v of [' ' + n.toUpperCase() + '  ', n.normalize('NFD').replace(/[̀-ͯ]/g, '')]) { try { guardarProducto({ nombre: v, unidad: 'u' }, null); out.push('creado'); } catch (e) { out.push('bloqueado'); } } return out; });
+  anota('no se crean productos repetidos por mayúsculas, tildes o espacios', r.every(x => x === 'bloqueado'), JSON.stringify(r)); });
+await prueba('no se pasa a "por unidad" un producto con kilos con decimales', async p => {
+  const r = await ev(p, () => { const pr = S.productos.find(x => x.unidad === 'kg' && stockDe(x.id) % 1); ACT['prod-edit']({ dataset: { id: pr.id } }); const f = document.querySelector('#frm'); f.elements.unidad.value = 'u'; document.querySelector('#okb').click();
+    return { unidad: pr.unidad, err: (document.querySelector('#err') || {}).textContent }; });
+  anota('no se pasa a "por unidad" un producto con kilos con decimales', r.unidad === 'kg' && !!r.err, JSON.stringify(r)); });
+
 console.log('\nSeguridad');
 await prueba('nombres con código HTML no se ejecutan', async p => {
   await ev(p, () => { window.__x = 0; const n = '<img src=x onerror="window.__x++">"\'&'; guardarProducto({ nombre: n, categoria: n, unidad: 'u', costo: 1, precio: 2, minimo: 5, notas: n }, null);
