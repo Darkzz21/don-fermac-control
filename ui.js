@@ -264,6 +264,8 @@ ACT['cart-clear']=()=>{ const n=UI.cart.items.length; confirmar(`¿Vaciar la ven
 ACT['cart-medio']=el=>{ UI.cart.medio=el.dataset.m; renderCart(); };
 ACT.cobrar=function(){ const C=UI.cart; if(!C.items.length) return;
   if(C.medio==='Cuenta corriente'&&!C.clienteId){ toast('Para vender en cuenta corriente elegí un cliente.',true); return; }
+  const tt=totalesVenta(C.items,num(C.descPct)||0).total, rec=C.medio==='Efectivo'?num(C.recibido):null;
+  if(rec!=null&&rec<tt-0.005){ toast('Recibiste '+moneyA(rec)+' y la venta es de '+moneyA(tt)+'. Corregí lo recibido o dejalo vacío.',true); const i=document.querySelector('[data-live="cart-rec"]'); if(i){ i.focus(); i.select(); } return; }
   if(C.comp){ const dup=dupDe(C.comp.operacion,C.comp.hash); if(dup.op||dup.hash){ toast('Ese comprobante ya se usó en '+dupTxt(dup.op||dup.hash)+'. Quitalo o subí otro.',true); return; } }
   const v=crearVenta({items:C.items.map(i=>({productoId:i.productoId,cant:i.cant,precio:i.precio})),clienteId:C.clienteId?+C.clienteId:null,medio:C.medio,descPct:num(C.descPct)||0,recibido:C.medio==='Efectivo'?num(C.recibido):null,fecha:C.fecha||undefined});
   const comp=C.comp; UI.cart={items:[],clienteId:'',medio:'Efectivo',recibido:'',descPct:''}; indexar(); const nav=$('#nav'); if(nav) nav.innerHTML=navHtml(); FILL.ventas(); renderCart();
