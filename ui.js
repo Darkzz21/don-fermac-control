@@ -228,10 +228,15 @@ function marcarTiles(){ const m={}; UI.cart.items.forEach(i=>m[i.productoId]=i.c
 function quitarCart(pid){ const i=UI.cart.items.findIndex(x=>x.productoId===pid); if(i<0) return; const it=UI.cart.items[i];
   if(prod(pid).unidad==='kg'||it.cant<=1) UI.cart.items.splice(i,1); else it.cant=r3(it.cant-1); renderCart(); }
 document.addEventListener('contextmenu',e=>{ const t=e.target.closest('.tiles .tile'); if(!t) return; e.preventDefault(); quitarCart(+t.dataset.id); });
-function renderCart(){ const c=$('#cart'); if(!c) return; const C=UI.cart; const t=totalesVenta(C.items,num(C.descPct)||0); const n=C.items.length;
+// la venta en curso se guarda en esta pestaña: si se recarga la página no se pierde (cada pestaña tiene la suya)
+const CART_KEY='gestia_carrito';
+function guardarCarrito(){ try{ const C=UI.cart; sessionStorage.setItem(CART_KEY,JSON.stringify({items:C.items,clienteId:C.clienteId,medio:C.medio,recibido:C.recibido,descPct:C.descPct,fecha:C.fecha})); }catch(e){} }
+function restaurarCarrito(){ try{ const o=JSON.parse(sessionStorage.getItem(CART_KEY)||'null'); if(!o||!Array.isArray(o.items)) return;
+  Object.assign(UI.cart,o,{items:o.items.filter(i=>prod(i.productoId)&&i.cant>0)}); if(UI.cart.clienteId&&!IDX.cli[+UI.cart.clienteId]) UI.cart.clienteId=''; }catch(e){} }
+function renderCart(){ guardarCarrito(); const c=$('#cart'); if(!c) return; const C=UI.cart; const t=totalesVenta(C.items,num(C.descPct)||0); const n=C.items.length;
   c.innerHTML=`<div class="chead"><h2>Venta <span class="vnum">#${(S.seq.V||0)+1}</span>${n?`<span class="cnt">${n}</span>`:''}</h2>${n?'<button class="btn sm ghost vac" data-act="cart-clear">Vaciar</button>':''}</div>
   ${n?`<div class="clist">${C.items.map(lineaCart).join('')}</div>`:`<div class="empty cvac">${CARTI}Sin productos</div>`}
-  <div class="frm" style="margin-top:10px"><label class="field">Cliente<select data-chg="cart-cli"><option value="">Consumidor final</option>${S.clientes.map(x=>`<option value="${x.id}" ${sel(C.clienteId,x.id)}>${esc(x.nombre)}</option>`).join('')}</select></label>
+  <div class="frm" style="margin-top:10px"><label class="field">Cliente<select data-chg="cart-cli"><option value="">Consumidor final</option>${S.clientes.filter(x=>!x.archivado||String(x.id)===String(C.clienteId)).map(x=>`<option value="${x.id}" ${sel(C.clienteId,x.id)}>${esc(x.nombre)}</option>`).join('')}</select></label>
    <label class="field">Descuento %<input data-chg="cart-desc" value="${esc(C.descPct)}" inputmode="decimal" placeholder="0"></label></div>
   <div class="pay" role="group" aria-label="Medio de pago">${MEDIOS.map(m=>`<button class="btn ${C.medio===m?'on':''}" data-act="cart-medio" data-m="${m}">${PAYI[m]||''}<span>${m==='Cuenta corriente'?'Cta. cte.':m}</span></button>`).join('')}</div>
   ${C.comp?`<div class="cartcomp"><div class="cc1">${typeof CLIP!=='undefined'?CLIP:''}<b>${esc(C.comp.file?C.comp.file.name:'Comprobante')}</b><button class="btn sm ghost" data-act="cart-comp-del" aria-label="Quitar comprobante">✕</button></div>

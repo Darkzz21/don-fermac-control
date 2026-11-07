@@ -372,6 +372,7 @@ document.addEventListener('DOMContentLoaded',function arrancar(){
   if(c.o){ S=prepararEstado(c.o); indexar(); }
   else if(c.raw) S=datosDanados(c.raw); // hay datos guardados que no se pueden leer: no se pisan
   else cargarDemo();
+  if(!c.raw) restaurarCarrito();
   const v=location.hash.slice(1); if(VIEWS[v]) UI.vista=v;
   pintarMarco(); render(); if(c.raw) avisoDanados(); });
 // Datos guardados que no se pueden leer: se copian aparte y se arranca vacío sin borrar nada.
