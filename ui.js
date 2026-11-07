@@ -1,7 +1,7 @@
 /* Interfaz: ayudantes, modales, navegación, Panel, Ventas (punto de venta) y Caja. */
 'use strict';
 const UI={vista:'panel',ventasTab:'vender',invTab:null,compTab:'lista',provTab:'prov',
-  f:{prod:{q:'',cat:'',prov:'',ver:'',est:'activos'},hist:{q:'',desde:'',hasta:''},mov:{q:'',tipo:'',desde:''},comp:{q:'',desde:''},cli:{q:''},gas:{q:'',desde:''},pos:{q:'',cat:''},pre:{q:'',ver:''},ccv:{q:'',ver:'saldo'}},
+  f:{prod:{q:'',cat:'',prov:'',ver:'',est:'activos'},hist:{q:'',desde:'',hasta:''},mov:{q:'',tipo:'',desde:''},comp:{q:'',desde:''},cli:{q:'',ver:'activos'},gas:{q:'',desde:''},pos:{q:'',cat:''},pre:{q:'',ver:''},ccv:{q:'',ver:'saldo'}},
   caja:{fecha:null},rep:{per:'mes',desde:'',hasta:''},cc:{id:null,per:'0'},cart:{items:[],clienteId:'',medio:'Efectivo',recibido:'',descPct:''}};
 const ACT={},FILL={},LIVE={},CHG={},VIEWS={},AFTER={}; let _raf=0;
 const gp=p=>p.split('.').reduce((o,k)=>o[k],UI);

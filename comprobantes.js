@@ -159,7 +159,7 @@ function sugerirCliente(d){ if(!d) return null; let r=null; for(const c of S.cli
 /* ---------- modal de cobro con comprobante ---------- */
 const CLIP='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="vertical-align:-3px"><path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 7.5"/></svg>';
 let CB=null;
-const optsClientes=(modo)=>[{v:'',t:modo&&modo!=='cobro'?'Consumidor final':'— Elegí el cliente —'}].concat(S.clientes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(x=>{ const s=saldoCliente(x.id); return {v:x.id,t:x.nombre+(s>0?' · debe '+money(s):s<0?' · a favor '+money(-s):'')}; }));
+const optsClientes=(modo)=>[{v:'',t:modo&&modo!=='cobro'?'Consumidor final':'— Elegí el cliente —'}].concat(S.clientes.filter(x=>!x.archivado||Math.abs(saldoCliente(x.id))>0.004).sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(x=>{ const s=saldoCliente(x.id); return {v:x.id,t:x.nombre+(s>0?' · debe '+money(s):s<0?' · a favor '+money(-s):'')}; }));
 // modo: 'cobro' (pago de cuenta corriente), 'venta' (venta cargada solo con el comprobante) o 'carrito' (comprobante de la venta que se está armando)
 function modalCobro(clienteId,abrirSelector,modo){ modo=modo||'cobro';
   CB={file:null,hash:null,datos:null,texto:'',sugerido:null,fijo:clienteId||null,modo,total:modo==='carrito'?totalesVenta(UI.cart.items,num(UI.cart.descPct)||0).total:0};
