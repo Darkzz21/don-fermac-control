@@ -1,0 +1,12 @@
+{
+  "name": "gestia-pruebas",
+  "private": true,
+  "type": "module",
+  "description": "Pruebas automáticas de Gestia: recorren la app en un navegador y prueban casos límite.",
+  "scripts": {
+    "test": "node auditoria.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.0.0"
+  }
+}
