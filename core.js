@@ -222,17 +222,23 @@ function ventaDiaria(pid,dias=30){
 function sugerido(p){ const s=stockDe(p.id); const obj=Math.max(p.minimo*2,ventaDiaria(p.id)*14); const q=obj-s; if(q<=0) return 0; return p.unidad==='kg'?Math.ceil(q*2)/2:Math.ceil(q); }
 
 /* ---------- caja ---------- */
-function resumenCaja(f){
+// efectivo que entró y salió en un día (sin contar la apertura)
+function flujoEfectivo(f){ const r=resumenCaja(f,true); return r2(r.por['Efectivo']+r.cobEf+r.ing-r.ret-r.gEf-r.cEf); }
+function resumenCaja(f,soloFlujo){
   const vs=ventasValidas(f,f); const por={}; MEDIOS.forEach(m=>por[m]=0); vs.forEach(v=>por[v.medio]=r2((por[v.medio]||0)+v.total));
   const cobros=S.cobros.filter(c=>c.fecha===f); const cobEf=r2(cobros.filter(c=>c.medio==='Efectivo').reduce((a,c)=>a+c.monto,0));
   const gEf=r2(S.gastos.filter(g=>g.fecha===f&&g.medio==='Efectivo').reduce((a,g)=>a+g.monto+(g.ivaRec?0:g.iva)+(g.ivaRec?g.iva:0),0));
   const cEf=r2(S.compras.filter(c=>c.estado!=='Anulada'&&(c.fechaPago||c.fecha)===f&&c.pago==='Efectivo').reduce((a,c)=>a+c.total,0));
   const movs=S.cajaMov.filter(m=>m.fecha===f); const ing=r2(movs.filter(m=>m.tipo==='Ingreso').reduce((a,m)=>a+m.monto,0)); const ret=r2(movs.filter(m=>m.tipo==='Retiro').reduce((a,m)=>a+m.monto,0));
+  if(soloFlujo) return {por,cobEf,gEf,cEf,ing,ret};
   const cierre=S.cajas.find(c=>c.fecha===f)||null;
   const prev=S.cajas.filter(c=>c.fecha<f).sort((a,b)=>a.fecha<b.fecha?1:-1)[0];
-  const apertura=cierre?cierre.apertura:(prev?prev.contado:0);
+  // apertura: lo contado en el último cierre más el efectivo de los días que quedaron sin cerrar en el medio
+  let apertura=0, sinCerrar=[];
+  if(cierre) apertura=cierre.apertura;
+  else if(prev){ apertura=prev.contado; for(let d=addDias(prev.fecha,1);d<f;d=addDias(d,1)){ const x=flujoEfectivo(d); if(Math.abs(x)>=0.005){ apertura=r2(apertura+x); sinCerrar.push(d); } } }
   const esperado=r2(apertura+por['Efectivo']+cobEf+ing-ret-gEf-cEf);
-  return {vs,por,cobros,cobEf,gEf,cEf,movs,ing,ret,cierre,apertura,esperado,totalVentas:r2(vs.reduce((a,v)=>a+v.total,0))};
+  return {vs,por,cobros,cobEf,gEf,cEf,movs,ing,ret,cierre,apertura,sinCerrar,esperado,totalVentas:r2(vs.reduce((a,v)=>a+v.total,0))};
 }
 
 /* ---------- reportes ---------- */
