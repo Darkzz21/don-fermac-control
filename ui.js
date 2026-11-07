@@ -182,7 +182,8 @@ function limpiarPos(){ UI.f.pos.q=''; const i=$('#posq'); if(i){ i.value=''; FIL
 ACT['pos-enter']=function(){ const l=posLista(); const q=UI.f.pos.q.trim(); if(!q) return;
   const exacto=l.find(p=>p.barras===q||p.codigo.toLowerCase()===q.toLowerCase());
   if(!exacto){ const e=leerEtiquetaBalanza(q); if(e){ limpiarPos(); agregarEtiqueta(e); return; } }
-  if(!l.length) return; ACT['pos-add']({dataset:{id:(exacto||l[0]).id}}); limpiarPos(); };
+  if(!l.length){ toast(/^\d{6,}$/.test(q)?'El código '+q+' no está cargado en ningún producto. Buscalo por nombre y agregá el código en su ficha.':'No encontré «'+q+'».',true); const i=$('#posq'); if(i) i.select(); return; }
+  ACT['pos-add']({dataset:{id:(exacto||l[0]).id}}); limpiarPos(); };
 function agregarEtiqueta(e){ // etiqueta impresa por la balanza: el producto sale del PLU y la cantidad del peso o del importe
   if(!e.p){ toast('Etiqueta de balanza con PLU '+e.plu+': no hay ningún producto con ese PLU. Cargalo en la ficha del producto.',true); return; }
   const p=e.p; if(!e.ok) toast('Ojo: el código de la etiqueta no verifica (puede estar mal leído). Revisá la cantidad.',true);
