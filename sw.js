@@ -1,5 +1,5 @@
 /* Gestia: guarda la app para que abra sin internet. Los datos siguen en el navegador. */
-const CACHE='gestia-v7';
+const CACHE='gestia-v8';
 const ARCHIVOS=['./','./index.html','./styles.css','./core.js','./sample.js','./ui.js','./views.js','./comprobantes.js','./etiquetas.js','./archivos.js','./movil.js','./icon.svg','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
 self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ARCHIVOS)).then(()=>self.skipWaiting())); });
 self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
