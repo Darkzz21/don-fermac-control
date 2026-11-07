@@ -301,7 +301,7 @@ VIEWS.caja=function(){
     <tr><td>Ingresos manuales</td><td class="n">${money(r.ing)}</td></tr><tr><td>Retiros</td><td class="n">− ${money(r.ret)}</td></tr><tr><td>Gastos pagados en efectivo</td><td class="n">− ${money(r.gEf)}</td></tr><tr><td>Compras pagadas en efectivo</td><td class="n">− ${money(r.cEf)}</td></tr>
     <tr class="tot"><td>Efectivo esperado</td><td class="n">${money(r.esperado)}</td></tr></tbody></table></div>
     <div class="bar" style="margin-top:10px"><button class="btn" data-act="caja-mov" data-t="Retiro">Registrar retiro</button><button class="btn" data-act="caja-mov" data-t="Ingreso">Registrar ingreso</button></div>
-    ${r.movs.length?`<div class="sm muted" style="margin-top:8px">${r.movs.map(m=>`${m.tipo}: ${money(m.monto)} · ${esc(m.motivo||'')}`).join('<br>')}</div>`:''}</div></div>
+    ${r.movs.length?`<div class="cmovs">${r.movs.map(m=>`<div><span>${m.tipo}: <b>${money(m.monto)}</b>${m.motivo?' · '+esc(m.motivo):''}</span><button class="btn sm ghost" data-act="caja-mov-del" data-id="${m.id}" title="Borrar" aria-label="Borrar ${m.tipo.toLowerCase()} de ${money(m.monto)}">✕</button></div>`).join('')}</div>`:''}</div></div>
   <div class="card"><h2>${cj?'Cierre guardado':'Cerrar caja'}</h2><div class="frm"><label class="field">Efectivo con el que se abrió<input id="cj_ap" value="${fnum(r.apertura)}" inputmode="decimal"></label>
    <label class="field">Efectivo contado ahora<input id="cj_con" value="${cj?fnum(cj.contado):''}" inputmode="decimal" placeholder="Contá el cajón" data-live="caja-dif"></label>
    <label class="field full">Notas<input id="cj_nota" value="${esc(cj?cj.notas:'')}" placeholder="Opcional"></label></div>
@@ -316,6 +316,8 @@ ACT['caja-cerrar']=function(){ const f=UI.caja.fecha; const r=resumenCaja(f); co
   const esp=r2(r.esperado-r.apertura+ap); const reg={fecha:f,apertura:ap,esperado:esp,contado:con,dif:r2(con-esp),notas:$('#cj_nota').value.trim()};
   const i=S.cajas.findIndex(c=>c.fecha===f); if(i>=0) S.cajas[i]=reg; else S.cajas.push(reg); guardar(); toast('Caja cerrada'); render(); };
 ACT['caja-mov']=function(el){ const t=el.dataset.t; formModal(t==='Retiro'?'Registrar retiro':'Registrar ingreso',[{n:'monto',l:'Monto ($)',t:'num',req:true,min:0.01},{n:'motivo',l:'Motivo',t:'text',full:true,ph:t==='Retiro'?'Ej: retiro del dueño, pago a proveedor':'Ej: cambio inicial'}],{},d=>{ S.cajaMov.push({id:sig('W'),fecha:UI.caja.fecha,tipo:t,monto:d.monto,motivo:d.motivo}); guardar(); cerrar(); render(); }); };
+ACT['caja-mov-del']=el=>{ const m=S.cajaMov.find(x=>x.id===+el.dataset.id); if(!m) return; const cerrada=S.cajas.some(k=>k.fecha===m.fecha);
+  confirmar(`¿Borrar el ${m.tipo.toLowerCase()} de <b>${money2(m.monto)}</b>${m.motivo?' ('+esc(m.motivo)+')':''}?${cerrada?'<br><br>La caja de ese día ya está cerrada: después revisá el cierre.':''}`,()=>{ S.cajaMov=S.cajaMov.filter(x=>x.id!==m.id); guardar(); render(); toast((m.tipo==='Retiro'?'Retiro':'Ingreso')+' borrado'); },'Borrar'); };
 AFTER.caja=function(){ const c=$('#cj_con'); if(c&&c.value) LIVE['caja-dif'](c); };
 
 /* Calendario propio para los campos de fecha: reemplaza el del navegador para que siga la estética de la app */
