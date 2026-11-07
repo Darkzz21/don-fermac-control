@@ -39,7 +39,6 @@ ACT['prod-edit']=el=>prodForm(prod(+el.dataset.id));
 function prodForm(p){ const nuevo=!p; const vals=p?Object.assign({},p):{unidad:'u',activo:true,costo:'',precio:'',minimo:''};
   const foot=p?`<button class="btn sm" data-act="prod-mover" data-id="${p.id}" type="button">Mover stock</button><button class="btn sm" data-act="prod-hist" data-id="${p.id}" type="button">Historial de precios</button><button class="btn sm bad" data-act="prod-del" data-id="${p.id}" type="button">Eliminar</button><span style="flex:1"></span>`:'';
   formModal(nuevo?'Nuevo producto':'Editar producto',camposProducto(p),vals,d=>{
-    if(S.productos.some(x=>x.nombre.toLowerCase()===d.nombre.toLowerCase()&&(!p||x.id!==p.id))) throw new Error('Ya existe un producto llamado «'+d.nombre+'».');
     if(d.barras&&S.productos.some(x=>x.barras&&x.barras===d.barras&&(!p||x.id!==p.id))) throw new Error('Ese código de barras ya está en otro producto.');
     if(!nuevo&&Math.abs(p.costo-d.costo)>=0.005) S.historial.push({id:sig('H'),fecha:hoy(),productoId:p.id,proveedorId:0,precio:d.costo,origen:'Ficha del producto'});
     const q=guardarProducto(Object.assign({},d,{codigo:nuevo?'':p.codigo,unidad:d.unidad||'u'}),p?p.id:null);

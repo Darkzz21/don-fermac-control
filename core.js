@@ -96,7 +96,10 @@ function registrarPrecio(pid,vid,precio,fecha,origen){
 
 /* ---------- productos ---------- */
 function nuevoCodigo(){ let n=S.productos.length+1,c; const usados=new Set(S.productos.map(p=>p.codigo.toUpperCase())); do{ c='P'+String(n).padStart(4,'0'); n++; }while(usados.has(c)); return c; }
+const normNom=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 function guardarProducto(d,id){
+  d.nombre=String(d.nombre||'').replace(/\s+/g,' ').trim(); if(!d.nombre) throw new Error('Completá el nombre del producto.');
+  const igual=S.productos.find(x=>x.id!==id&&normNom(x.nombre)===normNom(d.nombre)); if(igual) throw new Error('Ya existe un producto llamado «'+igual.nombre+'».');
   if(d.plu!=null&&String(d.plu).trim()!==''){ const v=String(d.plu).trim(); if(!/^\d{1,6}$/.test(v)) throw new Error('El PLU de balanza tiene que ser un número (por ejemplo 123).');
     const otro=S.productos.find(x=>x.id!==id&&x.plu&&+x.plu===+v); if(otro) throw new Error('El PLU '+v+' ya lo usa «'+otro.nombre+'».'); }
   let p=id?prod(id):null;

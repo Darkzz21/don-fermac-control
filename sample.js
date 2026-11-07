@@ -96,11 +96,11 @@ function importarProductosCSV(texto){
   filas.slice(1).forEach((r,i)=>{
     const g=(ix)=>ix>=0?String(r[ix]||'').trim():''; const nom=g(iNom); if(!nom) return;
     const nv=(ix,kg)=>{ const t=g(ix); if(t==='') return undefined; const v=kg?numKg(t):num(t); return v==null||v<0?NaN:v; };
-    const esKg=iUni>=0?g(iUni).toLowerCase().startsWith('k'):((S.productos.find(x=>x.nombre.toLowerCase()===nom.toLowerCase())||{}).unidad==='kg');
+    const esKg=iUni>=0?g(iUni).toLowerCase().startsWith('k'):((S.productos.find(x=>normNom(x.nombre)===normNom(nom))||{}).unidad==='kg');
     const costo=nv(iCos),precio=nv(iPre),stock=nv(iSto,esKg),minimo=nv(iMin,esKg);
     if([costo,precio,stock,minimo].some(x=>Number.isNaN(x))){ errores.push('Fila '+(i+2)+' ('+nom+'): hay un número inválido.'); return; }
     let p=null; const cod=g(iCod),bar=g(iBar);
-    if(cod) p=S.productos.find(x=>x.codigo.toUpperCase()===cod.toUpperCase()); if(!p&&bar) p=S.productos.find(x=>x.barras&&x.barras===bar); if(!p) p=S.productos.find(x=>x.nombre.toLowerCase()===nom.toLowerCase());
+    if(cod) p=S.productos.find(x=>x.codigo.toUpperCase()===cod.toUpperCase()); if(!p&&bar) p=S.productos.find(x=>x.barras&&x.barras===bar); if(!p) p=S.productos.find(x=>normNom(x.nombre)===normNom(nom));
     const uni=g(iUni).toLowerCase().startsWith('k')?'kg':'u';
     const d=p?{codigo:p.codigo,nombre:nom,categoria:g(iCat)||p.categoria,barras:bar||p.barras,unidad:iUni>=0?uni:p.unidad,costo:costo!==undefined?costo:p.costo,precio:precio!==undefined?precio:p.precio,minimo:minimo!==undefined?minimo:p.minimo,notas:p.notas,activo:p.activo}
              :{codigo:cod,nombre:nom,categoria:g(iCat),barras:bar,unidad:uni,costo:costo||0,precio:precio||0,minimo:minimo||0};
