@@ -15,6 +15,19 @@ const cats=()=>[...new Set(S.productos.map(p=>p.categoria).filter(Boolean))].sor
 /* ---------- avisos y diálogos ---------- */
 let _toast=null;
 function toast(msg,bad){ const o=$('#toast'); if(o) o.remove(); const t=document.createElement('div'); t.id='toast'; t.className='toast'+(bad?' bad':''); t.setAttribute('role','status'); t.textContent=msg; document.body.appendChild(t); clearTimeout(_toast); _toast=setTimeout(()=>t.remove(),bad?5000:2600); }
+// aviso fijo, en cualquier pantalla, si el navegador deja de guardar los datos
+function avisoGuardado(ok){ let b=$('#guarderr'); if(ok){ if(b){ b.remove(); toast('Los datos se volvieron a guardar'); } return; } if(b) return;
+  b=document.createElement('div'); b.id='guarderr'; b.className='guarderr'; b.setAttribute('role','alert');
+  b.innerHTML='<div><b>No se están guardando los cambios.</b> El navegador no tiene lugar o no permite guardar. Descargá un respaldo ahora para no perder lo último.</div><button class="btn sm" data-act="resp-exp">Descargar respaldo</button>';
+  document.body.appendChild(b); }
+// Otra pestaña con la app abierta guardó cambios: se toman acá para que una no pise a la otra.
+let _syncPend=false;
+function tomarDeOtraPestana(raw){ let o; try{ o=JSON.parse(raw); }catch(e){ return; } if(!o||o.v!==1) return;
+  S=prepararEstado(o); indexar(); pintarMarco(); UI.cart.items=UI.cart.items.filter(i=>prod(i.productoId));
+  const a=document.activeElement; if(a&&$('#view').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)){ _syncPend=true; return; } // no se borra lo que se está escribiendo
+  refrescar(); if(typeof renderCart==='function') renderCart(); }
+addEventListener('storage',e=>{ if(e.key===LS_KEY&&e.newValue&&S&&!BLOQUEO) tomarDeOtraPestana(e.newValue); });
+document.addEventListener('focusout',()=>{ if(_syncPend) setTimeout(()=>{ const a=document.activeElement; if(_syncPend&&!(a&&$('#view').contains(a)&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){ _syncPend=false; refrescar(); } },0); });
 function abrir(titulo,html,o={}){ cerrar(); const ov=document.createElement('div'); ov.className='ov'; ov.id='ov';
   ov.innerHTML=`<div class="md ${o.wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(titulo)}"><h2>${esc(titulo)}</h2><div id="mdb">${html}</div>${o.foot?`<div class="foot">${o.foot}</div>`:''}</div>`;
   ov.addEventListener('mousedown',e=>{ if(e.target===ov) cerrar(); }); document.body.appendChild(ov);
