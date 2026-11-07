@@ -95,8 +95,9 @@ function importarProductosCSV(texto){
   let nuevos=0,act=0; const errores=[];
   filas.slice(1).forEach((r,i)=>{
     const g=(ix)=>ix>=0?String(r[ix]||'').trim():''; const nom=g(iNom); if(!nom) return;
-    const nv=(ix)=>{ const t=g(ix); if(t==='') return undefined; const v=num(t); return v==null||v<0?NaN:v; };
-    const costo=nv(iCos),precio=nv(iPre),stock=nv(iSto),minimo=nv(iMin);
+    const nv=(ix,kg)=>{ const t=g(ix); if(t==='') return undefined; const v=kg?numKg(t):num(t); return v==null||v<0?NaN:v; };
+    const esKg=iUni>=0?g(iUni).toLowerCase().startsWith('k'):((S.productos.find(x=>x.nombre.toLowerCase()===nom.toLowerCase())||{}).unidad==='kg');
+    const costo=nv(iCos),precio=nv(iPre),stock=nv(iSto,esKg),minimo=nv(iMin,esKg);
     if([costo,precio,stock,minimo].some(x=>Number.isNaN(x))){ errores.push('Fila '+(i+2)+' ('+nom+'): hay un número inválido.'); return; }
     let p=null; const cod=g(iCod),bar=g(iBar);
     if(cod) p=S.productos.find(x=>x.codigo.toUpperCase()===cod.toUpperCase()); if(!p&&bar) p=S.productos.find(x=>x.barras&&x.barras===bar); if(!p) p=S.productos.find(x=>x.nombre.toLowerCase()===nom.toLowerCase());

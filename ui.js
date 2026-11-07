@@ -238,7 +238,7 @@ function miles(el){ const v=el.value, pos=el.selectionStart||v.length; const ant
   let [ent,dec]=v.replace(/[^\d,]/g,'').split(','); ent=(ent||'').replace(/^0+(?=\d)/,''); const f=ent.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(dec!==undefined?','+dec.slice(0,2):'');
   el.value=f; let n=0,i=0; while(i<f.length&&n<antes){ if(/[\d,]/.test(f[i])) n++; i++; } el.setSelectionRange(i,i); }
 LIVE['cart-rec']=el=>{ miles(el); UI.cart.recibido=el.value; const t=totalesVenta(UI.cart.items,num(UI.cart.descPct)||0); const v=$('#vuelto'); if(v) v.innerHTML=el.value.trim()?vueltoHtml(num(el.value),t.total):''; };
-CHG['cart-qty']=el=>{ const i=+el.dataset.i,it=UI.cart.items[i]; const v=num(el.value); const p=prod(it.productoId);
+CHG['cart-qty']=el=>{ const i=+el.dataset.i,it=UI.cart.items[i]; const p=prod(it.productoId); const v=numCant(p,el.value);
   if(v==null||v<=0){ UI.cart.items.splice(i,1); } else if(v>stockDe(p.id)+1e-9){ toast('Stock insuficiente: hay '+qtyTxt(p,stockDe(p.id))+'.',true); } else it.cant=p.unidad==='kg'?r3(v):Math.round(v); renderCart(); };
 CHG['cart-price']=el=>{ const v=num(el.value); if(v==null||v<0){ toast('Precio inválido.',true); } else UI.cart.items[+el.dataset.i].precio=v; UI.cart.editP=null; renderCart(); };
 ACT['cart-pedit']=el=>{ UI.cart.editP=+el.dataset.i; renderCart(); };

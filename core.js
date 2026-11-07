@@ -28,9 +28,14 @@ const money=n=>(S?S.config.moneda:'$')+' '+fmt(n,0);
 const money2=n=>(S?S.config.moneda:'$')+' '+fmt(n,2);
 // muestra centavos solo cuando el monto los tiene (ej. $ 5.075 o $ 5.075,50)
 const moneyA=n=>Math.abs(n-Math.round(n))<0.005?money(n):money2(n);
-const num=(s)=>{ if(typeof s==='number') return s; let t=String(s==null?'':s).trim().replace(/[$\s]/g,''); if(!t) return null;
-  if(t.includes(',')) t=t.replace(/\./g,'').replace(',','.'); else if(/^-?\d{1,3}(\.\d{3})+$/.test(t)) t=t.replace(/\./g,'');
-  const v=parseFloat(t); return isNaN(v)?null:v; };
+// lee números escritos a la argentina: "1.500" = 1500, "1.500,5" = 1500,5, "0,25" = 0,25.
+// Un punto solo es separador de miles si el número no empieza con 0 ("0.250" = 0,25).
+const num=(s)=>{ if(typeof s==='number') return s; let t=String(s==null?'':s).trim().replace(/[$%\s]/g,''); if(!t) return null;
+  if(t.includes(',')) t=t.replace(/\./g,'').replace(',','.'); else if(/^-?[1-9]\d{0,2}(\.\d{3})+$/.test(t)) t=t.replace(/\./g,'');
+  if(!/^-?(\d+\.?\d*|\.\d+)$/.test(t)) return null; const v=parseFloat(t); return isNaN(v)?null:v; };
+// para cantidades en kg: un punto solo es la coma decimal ("1.250" kg = 1,25 kg, nunca 1250 kg)
+const numKg=s=>{ const t=typeof s==='string'?s.trim():s; return typeof t==='string'&&!t.includes(',')&&(t.match(/\./g)||[]).length===1?num(t.replace('.',',')):num(t); };
+const numCant=(p,s)=>p&&p.unidad==='kg'?numKg(s):num(s);
 const qtyTxt=(p,c)=>{ if(!p) return fmt(c,3); if(p.unidad==='kg'){ if(c===0) return '0 kg'; return Math.abs(c)<1?fmt(c*1000,0)+' g':fmt(c,3).replace(/,?0+$/,'')+' kg'; } return fmt(c,0)+' u'; };
 const hoyHora=()=>new Date().toTimeString().slice(0,5);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
